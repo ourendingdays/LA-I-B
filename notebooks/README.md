@@ -4,7 +4,7 @@ Every notebook has been build and tested with `CPX22 — 2 vCPUs, 4 GB RAM`. The
 
 - anyone can run the code, even on the not the strongest hardware
 - no model is beeing downloaded, as is often the case with hugging face's `transformer`
-- when there is a need of a mdoel from HF, the hosted inference API is used (`InferenceClient`) - must have <b>HuggingFace token</b>
+- when there is a need of a model from HF, the hosted inference API is used (`InferenceClient`) - must have <b>HuggingFace token</b>
 
 
 ## Essentials
