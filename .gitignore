@@ -32,6 +32,7 @@ data/raw/*
 data/test/*
 data/train/*
 !data/README.md
+*/chroma_db/*
 
 models/*
 !models/.gitkeep
