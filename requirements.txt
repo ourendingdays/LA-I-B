@@ -17,6 +17,7 @@ requests==2.34.2
 
 # RAG / NLP Stuff
 datasets>=2.20
+ddgs==9.14.4
 huggingface_hub==1.21.0
 networkx==3.6.1
 nltk==3.9.4
