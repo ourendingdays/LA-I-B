@@ -1,7 +1,7 @@
 import streamlit as st
 
 # Main page content
-st.title('Welcome to RA(I)G!')
-st.sidebar.markdown("##### RA(I)G 📚")
+st.title('Welcome to the LA(I)B!')
+st.sidebar.markdown("##### Gentle Home :material/home:")
 
-st.text("RA(I)G is a collection of Retrieval Augmented (Intelligence) Generation tools. You can navigate to the other pages using the sidebar on the left.")
+st.text("LA(I)B is a collection of Data Science tools, techniques, pipelines, and models for various AI/ML tasks. It is designed to be a user-friendly platform for exploring and analyzing data, building models, and conducting research.")
