@@ -2,22 +2,18 @@ import streamlit as st
 import psutil
 
 
-st.set_page_config(
-    page_title="LA(I)B",
-    page_icon=":material/neurology:",
-    layout="wide",
-)
-
+st.set_page_config(page_title="LA(I)B", page_icon=":material/neurology:", layout="wide", initial_sidebar_state="expanded")
 st.logo("frontend/assets/app-icon-C-monogram-1024.png", size="large")
 
 # Define the pages
 page_main = st.Page("pages/main_page.py", title="Home", icon=":material/home:")
-page_doc_analysis = st.Page("pages/document_analysis.py", title="Document Analysis", icon=":material/document_search:")
+page_doc_analysis = st.Page("pages/rag.py", title="RAG", icon=":material/document_search:")
+page_ai_agent = st.Page("pages/ai_agent.py", title="AI Agent", icon=":material/robot_2:")
 
 # Set up navigation
 pg = st.navigation({
     "Overview": [page_main],
-    "Natural Language Processing": [page_doc_analysis],
+    "Natural Language Processing": [page_doc_analysis, page_ai_agent],
 })
 
 # Run the selected page
