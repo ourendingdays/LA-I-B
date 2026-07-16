@@ -1,3 +1,7 @@
+# Must insert the parent directory of the frontend folder into sys.path to allow imports from src
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import streamlit as st
 import psutil
 
