@@ -40,4 +40,6 @@ Build with
 - `transformers` (Hugging Face) : For the powerfull  powerful, free LLM.
 - `sentence-transformers`       : The easiest way to get a top-tier embedding model
 - `faiss-cpu `                  : Facebook AI’s blazing-fast, free vector search library; vector store
-- `langchain`                   : Only using se its text splitter, which is a smart shortcut that saves hours of regex pain.
+- `langchain`                   : Only using its text splitter, which is a smart shortcut that saves hours of regex pain.
+- `duckduckgo`                  : Search Engine
+- `chroma`                      : Vector DB 
