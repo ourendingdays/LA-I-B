@@ -13,8 +13,6 @@ MODELS_TO_TEST = [
     # Qwen family
     "Qwen/Qwen2.5-7B-Instruct",
     "Qwen/Qwen2.5-72B-Instruct",
-    "Qwen/Qwen3-8B",
-    "Qwen/Qwen3-32B",
     
     # Meta Llama family
     "meta-llama/Meta-Llama-3-8B-Instruct",
@@ -43,8 +41,6 @@ MODELS_TO_TEST = [
 ]
 
 
-
-
 class HuggingFaceClient:
     def __init__(self):
         load_dotenv()  # Load environment variables from .env file
@@ -55,11 +51,7 @@ class HuggingFaceClient:
         self.headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
         self.client = InferenceClient(token=HF_TOKEN)
-
-        # Get a list of available models that work with the Hugging Face Inference API right now - they rotate availability on the free tier, so some may be down at any given time.
-        available_models = self.get_working_models(MODELS_TO_TEST)
-        self.model = random.choice(available_models)
-
+    
     def get_working_models(self, models: List[str]) -> List[str]:
         """
         Returns a list of models that work with the Hugging Face Inference API.
@@ -104,4 +96,9 @@ class HuggingFaceClient:
 
 if __name__ == "__main__":
     hf_client = HuggingFaceClient()
-    print(f"Selected model: {hf_client.model}")
+
+    # Get a list of available models that work with the Hugging Face Inference API right now - they rotate availability on the free tier, so some may be down at any given time.
+    available_models = hf_client.get_working_models(MODELS_TO_TEST)
+    model = random.choice(available_models)
+
+    print(f"Selected model: {model}")
