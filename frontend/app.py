@@ -32,8 +32,11 @@ with st.sidebar:
     ram = psutil.virtual_memory()           # RAM usage
     disk_usage = psutil.disk_usage('/')     # Disk usage for a specific path
 
-    st.caption(f"Hetzner CPX22 · RAM {ram.percent:.0f}%  · Disk Usage {disk_usage.percent:.0f}%")
+    st.caption(f"Compute · RAM {ram.percent:.0f}%  · Disk Usage {disk_usage.percent:.0f}%")
     st.caption(f"CET Time: {datetime.now(pytz.timezone('CET')).strftime('%Y-%m-%d %H:%M')}")
 
     st.badge("v0.1.0", color="green")
     st.badge("Experimental", color="orange")
+
+    if st.button("yo?", type="secondary"):
+        st.write("yo")

@@ -22,7 +22,7 @@ class SimpleRAG:
 
     def run(self, file_path: Path, query: str, configuration_data: Dict) -> tuple[str, List[float], List[str]]:
         """
-        Main method to run the RAG pipeline: load and split document, create embeddings and index, and perform retrieval.
+        Main method to run the RAG pipeline: loads and splits document, creates embeddings and index, performs retrieval of the most relevant chunks.
 
         Args:
             file_path           (Path) : Path to the document file.
@@ -33,7 +33,9 @@ class SimpleRAG:
             tuple: Retrieved context (str) and distances (list of floats).
         """
         # Load and split the document into chunks
-        chunks = self.load_and_split_document(file_path = file_path, text_splitter_config = configuration_data.get("text_splitter", {}))
+        chunks = self.load_and_split_document(file_path = file_path, 
+                                              ts_chunk_size = configuration_data["ts_chunk_size"],
+                                              ts_chunk_overlap = configuration_data["ts_chunk_overlap"])
 
         # Create embeddings for the chunks and build a FAISS index
         self.index, self.chunks = self.create_embeddings_and_index(chunks = chunks, model_name = configuration_data.get("sentence_transformer_model", "all-MiniLM-L6-v2"))
@@ -43,13 +45,14 @@ class SimpleRAG:
 
         return context, distances
 
-    def load_and_split_document(self, file_path: Path, text_splitter_config: Dict = None) -> List[str]:
+    def load_and_split_document(self, file_path: Path, ts_chunk_size: int = 150, ts_chunk_overlap: int = 20) -> List[str]:
         """
         Loads a document (.txt and .pdf formats) from the given file path and splits it into chunks.
 
         Args:
-            file_path               (Path)          : Path to the document file.
-            text_splitter_config    (dict, optional): Configuration for the text splitter, including chunk size, overlap, and separators. Defaults to None.
+            file_path         (Path)          : Path to the document file.
+            ts_chunk_size     (int, optional) : Size of each chunk. Defaults to 150.
+            ts_chunk_overlap  (int, optional) : Overlap between chunks. Defaults to 20
         Returns:
             list: List of text chunks.
         """
@@ -65,15 +68,12 @@ class SimpleRAG:
             raise ValueError(f"Unsupported file format: {file_path.suffix}. Only .txt and .pdf are supported.")
 
         # Initializing the Text Splitter, which tries to split on paragraphs ("\n\n"), then newlines ("\n"), then spaces (" "), to keep semantically related text together as much as possible.
-        chunk_size = text_splitter_config.get("chunk_size", 150)
-        chunk_overlap = text_splitter_config.get("chunk_overlap", 20)
-        separators = text_splitter_config.get("separators", ["\n\n", "\n", " ", ""])
 
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
+            chunk_size=ts_chunk_size,
+            chunk_overlap=ts_chunk_overlap,
             length_function=len,
-            separators=separators
+            separators=["\n\n", "\n", " ", ""]
         )
 
         chunks = text_splitter.split_text(knowledge_text)
@@ -135,15 +135,16 @@ class SimpleRAG:
         #     print(f"Chunk {i+1} (Distance: {distances[0][i]}):\n{chunk}\n")
         return context, distances[0]
 
-    def answer_question(self, query: str, prompt: str, context: str, model: str) -> str:
+    def answer_question(self, query: str, prompt: str, context: str, model: str, max_tokens: int = 200) -> str:
         """
         Generates an answer using the LLM based on the provided context.
 
         Args:
-            query   (str): User query for retrieval.
-            prompt  (str): Prompt template for the LLM.
-            context (str): Retrieved context to use for generating the answer.
-            model   (str): Name of the LLM model to use for generating the answer.
+            query       (str): User query for retrieval.
+            prompt      (str): Prompt template for the LLM.
+            context     (str): Retrieved context to use for generating the answer.
+            model       (str): Name of the LLM model to use for generating the answer.
+            max_tokens  (int): Maximum number of tokens for the generated answer. Default is 200.
 
         Returns:
             str: Generated answer from the LLM.
@@ -158,8 +159,8 @@ class SimpleRAG:
                 "role": "user",
                 "content": query
             }],
-            model=model,  # Using a working model from Hugging Face
-            max_tokens=200
+            model=model,
+            max_tokens=max_tokens
         )
 
         # print(f"--- GENERATED ANSWER ---\n{result.choices[0].message.content}\n")
@@ -181,8 +182,8 @@ if __name__ == "__main__":
 
     configuration_data = {
         "llm_prompt": PROMPT_TEMPLATE,
-        "llm_models_to_test": MODELS_TO_TEST,
-        "text_splitter": TEXT_SPLITTER,
+        "ts_chunk_size": TEXT_SPLITTER.get("chunk_size", 150),
+        "ts_chunk_overlap": TEXT_SPLITTER.get("chunk_overlap", 20),
         "sentence_transformer_model": SENTENCE_TRANSFORMER_MODEL,
         "embeddings_top_k": EMBEDDINGS_TOP_K,
         "llm_max_tokens": LLM_MAX_TOKENS
@@ -198,9 +199,13 @@ if __name__ == "__main__":
     context, distances = rag.run(file_path=file_path, query=query, configuration_data=configuration_data)
 
     # Checking for available models and selecting one for the LLM
-    available_models = rag.hf_client.get_working_models(configuration_data.get("llm_models_to_test", []))
+    available_models = rag.hf_client.get_working_models(MODELS_TO_TEST)
     model = random.choice(available_models)
     
-    answer = rag.answer_question(query=query, prompt = configuration_data["llm_prompt"], context=context, model=model)
+    answer = rag.answer_question(query=query, 
+                                 prompt = configuration_data["llm_prompt"], 
+                                 context=context, 
+                                 model=model,
+                                 max_tokens=configuration_data["llm_max_tokens"])
     print(f"Answer: {answer}")
 
