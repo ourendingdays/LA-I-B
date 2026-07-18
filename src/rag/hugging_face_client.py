@@ -1,3 +1,6 @@
+# Custom Modules
+from src.rag.utils import load_config
+
 # Data Science and NLP Libraries
 from huggingface_hub import InferenceClient
 
@@ -6,40 +9,6 @@ from dotenv import load_dotenv
 import os
 import random
 from typing import List
-
-# How to pick a good model:
-# You want models that are "Instruct" tuned (they follow instructions) and support chat_completion. Look for these patterns in the name: Instruct, it (Google's naming), Chat. Avoid base models (no instruction tuning — they just autocomplete text, not answer questions).
-MODELS_TO_TEST = [
-    # Qwen family
-    "Qwen/Qwen2.5-7B-Instruct",
-    "Qwen/Qwen2.5-72B-Instruct",
-    
-    # Meta Llama family
-    "meta-llama/Meta-Llama-3-8B-Instruct",
-    "meta-llama/Meta-Llama-3.1-8B-Instruct",
-    "meta-llama/Meta-Llama-3.1-70B-Instruct",
-    
-    # Google Gemma family
-    "google/gemma-2-9b-it",
-    "google/gemma-2-27b-it",
-    
-    # Mistral family
-    "mistralai/Mistral-7B-Instruct-v0.3",
-    "mistralai/Mixtral-8x7B-Instruct-v0.1",
-    "mistralai/Mistral-Small-24B-Instruct-2501",
-    
-    # Microsoft Phi family
-    "microsoft/Phi-3-mini-4k-instruct",
-    "microsoft/Phi-4-mini-instruct",
-    
-    # DeepSeek
-    "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-    
-    # Others
-    "HuggingFaceH4/zephyr-7b-beta",
-    "NousResearch/Hermes-3-Llama-3.1-8B",
-]
-
 
 class HuggingFaceClient:
     def __init__(self):
@@ -98,6 +67,9 @@ if __name__ == "__main__":
     hf_client = HuggingFaceClient()
 
     # Get a list of available models that work with the Hugging Face Inference API right now - they rotate availability on the free tier, so some may be down at any given time.
+    data = load_config("src/rag/configs/rag_simple.yaml")
+    MODELS_TO_TEST = data.get("llm_models_to_test", [])
+
     available_models = hf_client.get_working_models(MODELS_TO_TEST)
     model = random.choice(available_models)
 

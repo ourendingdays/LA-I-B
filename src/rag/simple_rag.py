@@ -1,71 +1,79 @@
+# Custom Modules
+from src.rag.hugging_face_client import HuggingFaceClient
+from src.rag.utils import load_config
+
 # Data Science Libraries
 import faiss
 import numpy as np
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 
-from src.rag.hugging_face_client import MODELS_TO_TEST, HuggingFaceClient
-
 # Standard Libraries
 from pathlib import Path
+from pypdf import PdfReader
 import random
-from typing import List
-
+from typing import Dict, List
 
 class SimpleRAG:
     def __init__(self, model_name="all-MiniLM-L6-v2"):
         # Initialize the InferenceClient for LLM
         self.hf_client = HuggingFaceClient()
 
-        # Initialize the embedding model
-        self.embedding_model = SentenceTransformer(model_name)
 
-
-    def run(self, file_path: Path, query: str) -> tuple[str, List[float], List[str]]:
+    def run(self, file_path: Path, query: str, configuration_data: Dict) -> tuple[str, List[float], List[str]]:
         """
         Main method to run the RAG pipeline: load and split document, create embeddings and index, and perform retrieval.
 
         Args:
-            file_path (Path): Path to the document file.
-            query (str): User query for retrieval.
+            file_path           (Path) : Path to the document file.
+            query               (str)  : User query for retrieval.
+            configuration_data  (dict) : Configuration data loaded from YAML file.
 
         Returns:
-            tuple: Retrieved context (str), distances (list of floats), and available models (list of str).
+            tuple: Retrieved context (str) and distances (list of floats).
         """
         # Load and split the document into chunks
-        chunks = self.load_and_split_document(file_path = file_path)
+        chunks = self.load_and_split_document(file_path = file_path, text_splitter_config = configuration_data.get("text_splitter", {}))
 
         # Create embeddings for the chunks and build a FAISS index
-        self.index, self.chunks = self.create_embeddings_and_index(chunks = chunks)
+        self.index, self.chunks = self.create_embeddings_and_index(chunks = chunks, model_name = configuration_data.get("sentence_transformer_model", "all-MiniLM-L6-v2"))
 
         # Perform retrieval based on the user query
-        context, distances = self.retrieve(query)
+        context, distances = self.retrieve(query, top_k = configuration_data.get("embeddings_top_k", 3))
 
-        # Checking for available models and selecting one for the LLM
-        available_models = self.hf_client.get_working_models(MODELS_TO_TEST)
+        return context, distances
 
-        return context, distances, available_models
-
-    def load_and_split_document(self, file_path: Path):
+    def load_and_split_document(self, file_path: Path, text_splitter_config: Dict = None) -> List[str]:
         """
-        Loads a document from the given file path and splits it into chunks.
+        Loads a document (.txt and .pdf formats) from the given file path and splits it into chunks.
 
         Args:
-            file_path (Path): Path to the document file.
+            file_path               (Path)          : Path to the document file.
+            text_splitter_config    (dict, optional): Configuration for the text splitter, including chunk size, overlap, and separators. Defaults to None.
         Returns:
             list: List of text chunks.
         """
+        if file_path.suffix.lower() == ".txt":
+            with open(file_path, 'r', encoding='utf-8') as f:
+                knowledge_text = f.read()
+        elif file_path.suffix.lower() == ".pdf":
+            reader = PdfReader(file_path)
+            knowledge_text = ""
+            for page in reader.pages:
+                knowledge_text += page.extract_text()
+        else:
+            raise ValueError(f"Unsupported file format: {file_path.suffix}. Only .txt and .pdf are supported.")
 
-        # Loading the document
-        with open(file_path, 'r', encoding='utf-8') as f:
-            knowledge_text = f.read()
-        
         # Initializing the Text Splitter, which tries to split on paragraphs ("\n\n"), then newlines ("\n"), then spaces (" "), to keep semantically related text together as much as possible.
+        chunk_size = text_splitter_config.get("chunk_size", 150)
+        chunk_overlap = text_splitter_config.get("chunk_overlap", 20)
+        separators = text_splitter_config.get("separators", ["\n\n", "\n", " ", ""])
+
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=150,  # Max size of a chunk
-            chunk_overlap=20, # Overlap to maintain context between chunks
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
             length_function=len,
-            separators=["\n\n", "\n", " ", ""]
+            separators=separators
         )
 
         chunks = text_splitter.split_text(knowledge_text)
@@ -77,25 +85,22 @@ class SimpleRAG:
         Creates embeddings for the given chunks and builds a FAISS index.
 
         Args:
-            chunks (list): List of text chunks.
-            model_name (str): Name of the embedding model to use. Default is "all-MiniLM-L6-v2" - small embedding model, that runs 100% even on not the most demanding local machines.
+            chunks      (list)  : List of text chunks.
+            model_name  (str)   : Name of the embedding model to use. Default is "all-MiniLM-L6-v2" - small embedding model, that runs 100% even on not the most demanding local machines.
         Returns:
             tuple: FAISS index and the list of chunks.
         """
         
-        embedding_model = SentenceTransformer(model_name)
+        self.embedding_model = SentenceTransformer(model_name)
 
         # Embedding all chunks. This will take a moment as the model "reads" and "understands" each chunk.
-        chunk_embeddings = embedding_model.encode(chunks)
-
-        # print(f"Shape of the embeddings: {chunk_embeddings.shape}")
-
-        # Vector Store with FAISS-database to store the embeddings in a vector-index
+        chunk_embeddings = self.embedding_model.encode(chunks)
 
         # dimension of our vectors are 384 (the size of the embedding model output)
         dims = chunk_embeddings.shape[1]
 
-        # Creating the FAISS index with IndexFlatL2 - the simplest, most basic index, that calculates the exact distance (L2 distance) between our query and all vectors.
+        # Creating the FAISS-db index with IndexFlatL2 to store the embeddings in a vector-index - the simplest, most basic index, 
+        # that calculates the exact distance (L2 distance) between our query and all vectors.
         index = faiss.IndexFlatL2(dims)
 
         # Adding our chunk embeddings to the index. We must convert to float32 for FAISS
@@ -130,14 +135,15 @@ class SimpleRAG:
         #     print(f"Chunk {i+1} (Distance: {distances[0][i]}):\n{chunk}\n")
         return context, distances[0]
 
-    def answer_question(self, query: str, context: str, model: str) -> str:
+    def answer_question(self, query: str, prompt: str, context: str, model: str) -> str:
         """
         Generates an answer using the LLM based on the provided context.
 
         Args:
-            query (str): User query for retrieval.
+            query   (str): User query for retrieval.
+            prompt  (str): Prompt template for the LLM.
             context (str): Retrieved context to use for generating the answer.
-            model (str): Name of the LLM model to use for generating the answer.
+            model   (str): Name of the LLM model to use for generating the answer.
 
         Returns:
             str: Generated answer from the LLM.
@@ -147,7 +153,7 @@ class SimpleRAG:
         result = self.hf_client.client.chat_completion(
             messages=[{
                 "role": "system",
-                "content": f"You are a helpful assistant. Use the following context to answer the question:\n{context}"
+                "content": f"{prompt} : \n{context}"
             }, {
                 "role": "user",
                 "content": query
@@ -165,12 +171,36 @@ class SimpleRAG:
     
 
 if __name__ == "__main__":
+    config_data = load_config("src/rag/configs/rag_simple.yaml")
+    PROMPT_TEMPLATE             = config_data.get("llm_prompt", "You are a helpful assistant that answers questions based on the context provided. If you don't know the answer, just say 'I don't have that information'. Do not try to make up an answer.")
+    MODELS_TO_TEST              = config_data.get("llm_models_to_test", [])
+    TEXT_SPLITTER               = config_data.get("text_splitter", [])
+    SENTENCE_TRANSFORMER_MODEL  = config_data.get("sentence_transformer_model", "all-MiniLM-L6-v2")
+    EMBEDDINGS_TOP_K            = config_data.get("embeddings_top_k", 3)
+    LLM_MAX_TOKENS              = config_data.get("llm_max_tokens", 200)
+
+    configuration_data = {
+        "llm_prompt": PROMPT_TEMPLATE,
+        "llm_models_to_test": MODELS_TO_TEST,
+        "text_splitter": TEXT_SPLITTER,
+        "sentence_transformer_model": SENTENCE_TRANSFORMER_MODEL,
+        "embeddings_top_k": EMBEDDINGS_TOP_K,
+        "llm_max_tokens": LLM_MAX_TOKENS
+    }
+
     rag = SimpleRAG()
-    query = "What is the main topic of the document?" # What is the distance from Earth to the Sun?
+    #query = "What is the main topic of the document?"  
+    query = 'What is the distance from Earth to the Sun?'
+
+    #file_path = Path("data/raw/pdf/Full-47.pdf")
+    file_path = Path("data/raw/txt/rag_notebook.txt")
     
-    context, distances, available_models = rag.run(file_path=Path("data/raw/rag_notebook.txt"), query=query)
+    context, distances = rag.run(file_path=file_path, query=query, configuration_data=configuration_data)
+
+    # Checking for available models and selecting one for the LLM
+    available_models = rag.hf_client.get_working_models(configuration_data.get("llm_models_to_test", []))
     model = random.choice(available_models)
     
-    answer = rag.answer_question(query=query, context=context, model=model)
+    answer = rag.answer_question(query=query, prompt = configuration_data["llm_prompt"], context=context, model=model)
     print(f"Answer: {answer}")
 
