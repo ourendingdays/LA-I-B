@@ -3,6 +3,9 @@ from src.rag.hugging_face_client import HuggingFaceClient
 from src.rag.simple_rag import SimpleRAG
 from src.rag.utils import load_config
 
+# Data Science Libraries
+import plotly.graph_objects as go
+
 # Standard Libraries
 from pathlib import Path
 import streamlit as st
@@ -12,9 +15,19 @@ import tempfile
 CONFIGURATION_DATA = load_config("src/rag/configs/rag_simple.yaml")
 if 'context' not in st.session_state:
     st.session_state.context = None
-
+if 'chunks' not in st.session_state:
+    st.session_state.chunks = None
 if 'distances' not in st.session_state:
     st.session_state.distances = None
+if 'answered_question' not in st.session_state:
+    st.session_state.answered_question = None
+
+def trigger_retrieve():
+    st.session_state.processing = "retrieve"
+
+def trigger_answer():
+    st.session_state.processing = "answer"
+
 
 @st.cache_data(show_spinner=False)
 def get_available_hf_inference_models():
@@ -26,11 +39,42 @@ def save_uploaded_file(uploaded_file) -> Path:
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(uploaded_file.getvalue())
         return Path(tmp.name)
-    
+
+def answer_question(query, llm_prompt, max_tokens, chosen_model):
+    """
+    Generates an answer to the provided query using the RAG process and the selected LLM model.
+    """
+    if st.session_state.chunks is None:
+        st.warning("Please retrieve text chunks first before answering a question.")
+        return
+
+    st.session_state.context = "\n\n".join(st.session_state.chunks)
+
+    st.session_state.answered_question = get_answer(query=query, 
+                                 prompt=llm_prompt, 
+                                 context=st.session_state.context, 
+                                 model=chosen_model,
+                                 max_tokens=max_tokens)
+
 @st.cache_data(show_spinner=True)
+def get_answer(query, prompt, context, model, max_tokens):   
+    rag = SimpleRAG()
+    return rag.answer_question(query=query, prompt=prompt, context=context, model=model, max_tokens=max_tokens)
+
+
 def display_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k):
     """
+    Wrapper: always runs, always writes to session_state — cache hit or miss.
+    """
+    st.session_state['chunks'], st.session_state['distances'] = get_document_info(file_path, query, llm_prompt, max_tokens,
+                                           text_splitter_chunk_size, text_splitter_chunk_over,
+                                           sentence_transformer_model, embeddings_top_k)
+    
+@st.cache_data(show_spinner=True)
+def get_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k):
+    """
     Retrieves document information based on the provided parameters : Context and distances from the RAG process.
+    Guardrailes: This function is cached to optimize performance. It will only re-run if the input parameters change.
     """
     configuration_data = {
         "llm_prompt": llm_prompt,
@@ -42,8 +86,8 @@ def display_document_info(file_path, query, llm_prompt, max_tokens, text_splitte
     }
 
     rag = SimpleRAG()
-    st.session_state['context'], st.session_state['distances'] = rag.run(file_path=file_path, query=query, configuration_data=configuration_data)
-
+    chunks, distances = rag.run(file_path=file_path, query=query, configuration_data=configuration_data)
+    return chunks, distances
 
 st.markdown("# RAG : Document Analysis :material/document_search:")
 st.sidebar.markdown("##### Gentle RAG :material/document_search:")
@@ -64,7 +108,7 @@ with st.container(border=True):
     with col2:
         chosen_model = st.text_input("Enter your own (must be an Instruct with chat_completion):", value=chosen_model_predefined)
 
-SIMPLE_RAG_TAB, tab2 = st.tabs(["Simplest RAG", "Data"])
+SIMPLE_RAG_TAB, GRAPH_RAG = st.tabs(["Simplest RAG", "Graph RAG"])
 
 with SIMPLE_RAG_TAB:
     st.caption("Single Document Analysis Using LLM. It retrieves relevant chunks from a document and generates an answer using a language model.")
@@ -76,7 +120,6 @@ with SIMPLE_RAG_TAB:
         st.write("No file uploaded yet. Please upload a document to proceed.")
         file_path = Path("data/raw/txt/rag_notebook.txt")  # Default file path if no file is uploaded
 
-    st.divider()
     llm_prompt = st.text_area(label='LLM Prompt', value=CONFIGURATION_DATA.get("llm_prompt"))
     col1, col2 = st.columns([0.75, 0.25])
     with col1:
@@ -95,18 +138,56 @@ with SIMPLE_RAG_TAB:
                                                            help="Model used for generating embeddings for text chunks.")
                 embeddings_top_k = st.slider("Top K", 1, 10, 3, step=1, help="Number of top relevant chunks to retrieve.")
 
-        with st.container(horizontal=True, horizontal_alignment="right"):
-            st.button("Retrieve Text Chunks", on_click=display_document_info, 
-                    args=(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k), type="primary")
+    with st.container(horizontal=True, horizontal_alignment="right"):
+        st.button("Retrieve Text Chunks", 
+                  on_click=display_document_info, 
+                  args=(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k), 
+                  type="primary")
+        st.button("Answer Question", on_click=answer_question, 
+            args=(query, llm_prompt, max_tokens, chosen_model), type="primary")
 
-    if st.session_state.context is not None and st.session_state.distances is not None:
+    if st.session_state.chunks is not None and st.session_state.distances is not None:
+        # Sort by distance (lowest = most relevant, adjust if your metric is similarity instead)
+        order = sorted(range(len(st.session_state.distances)), key=lambda i: st.session_state.distances[i])
+        sorted_chunks = [st.session_state.chunks[i] for i in order]
+        sorted_distances = [st.session_state.distances[i] for i in order]
+        labels = [f"Chunk {i+1}" for i in order]
+        hover_texts = [c[:300] + ("..." if len(c) > 300 else "") for c in sorted_chunks]
+
+        fig = go.Figure(
+            go.Bar(
+                x=sorted_distances,
+                y=labels,
+                orientation="h",
+                text=[f"{d:.3f}" for d in sorted_distances],
+                textposition="outside",
+                hovertext=hover_texts,
+                hoverinfo="text",
+                marker=dict(
+                    color=sorted_distances,
+                    colorscale="Blues_r",  # darker = closer/more relevant
+                ),
+            )
+        )
+        fig.update_layout(
+            xaxis_title="Distance (lower = more relevant)",
+            yaxis_title="Chunk",
+            yaxis=dict(autorange="reversed"),  # best match at top
+            height=80 + 40 * len(labels),
+            margin=dict(l=10, r=10, t=10, b=10),
+        )
+        st.plotly_chart(fig, width="stretch")
+
+        # Optional: still let them read the full chunk text below
+        with st.expander("View full chunk text"):
+            for label, chunk, dist in zip(labels, sorted_chunks, sorted_distances):
+                st.markdown(f"**{label}** — distance: `{dist:.4f}`")
+                st.text(chunk)
+                st.divider()
+
+    if st.session_state.answered_question is not None:
         st.divider()
-        st.subheader("Retrieved Context")
-        st.text_area("Context", value=st.session_state.context, height=300, disabled=True)
-        st.subheader("Distances of Retrieved Chunks")
-        st.text_area("Distances", value=str(st.session_state.distances), height=100, disabled=True)
+        st.text_area("Answer", value=st.session_state.answered_question, height=200, disabled=True)
 
-
-
-with tab2:
+with GRAPH_RAG:
     st.dataframe({"col1": [1, 2, 3], "col2": [4, 5, 6]})

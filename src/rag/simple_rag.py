@@ -20,7 +20,7 @@ class SimpleRAG:
         self.hf_client = HuggingFaceClient()
 
 
-    def run(self, file_path: Path, query: str, configuration_data: Dict) -> tuple[str, List[float], List[str]]:
+    def run(self, file_path: Path, query: str, configuration_data: Dict) -> tuple[List[str], List[float]]:
         """
         Main method to run the RAG pipeline: loads and splits document, creates embeddings and index, performs retrieval of the most relevant chunks.
 
@@ -30,7 +30,7 @@ class SimpleRAG:
             configuration_data  (dict) : Configuration data loaded from YAML file.
 
         Returns:
-            tuple: Retrieved context (str) and distances (list of floats).
+            tuple: Retrieved chunks (list of str) and distances (list of floats).
         """
         # Load and split the document into chunks
         chunks = self.load_and_split_document(file_path = file_path, 
@@ -41,9 +41,9 @@ class SimpleRAG:
         self.index, self.chunks = self.create_embeddings_and_index(chunks = chunks, model_name = configuration_data.get("sentence_transformer_model", "all-MiniLM-L6-v2"))
 
         # Perform retrieval based on the user query
-        context, distances = self.retrieve(query, top_k = configuration_data.get("embeddings_top_k", 3))
+        chunks, distances = self.retrieve(query, top_k = configuration_data.get("embeddings_top_k", 3))
 
-        return context, distances
+        return chunks, distances
 
     def load_and_split_document(self, file_path: Path, ts_chunk_size: int = 150, ts_chunk_overlap: int = 20) -> List[str]:
         """
@@ -118,7 +118,7 @@ class SimpleRAG:
             top_k (int): Number of top relevant chunks to retrieve. Default is 3.
 
         Returns:
-            tuple: Retrieved context (str) and distances (list of floats).
+            tuple: Retrieved chunks (list of str) and distances (list of floats).
         """
         # Create embedding for the user query
         query_embedding = self.embedding_model.encode([query]).astype('float32')
@@ -128,12 +128,11 @@ class SimpleRAG:
 
         # Retrieve the actual text chunks based on the indices
         retrieved_chunks = [self.chunks[i] for i in indices[0]]
-        context = "\n\n".join(retrieved_chunks)
 
         # Print the retrieved chunks and their distances
         # for i, chunk in enumerate(retrieved_chunks):
         #     print(f"Chunk {i+1} (Distance: {distances[0][i]}):\n{chunk}\n")
-        return context, distances[0]
+        return retrieved_chunks, distances[0]
 
     def answer_question(self, query: str, prompt: str, context: str, model: str, max_tokens: int = 200) -> str:
         """
@@ -196,7 +195,8 @@ if __name__ == "__main__":
     #file_path = Path("data/raw/pdf/Full-47.pdf")
     file_path = Path("data/raw/txt/rag_notebook.txt")
     
-    context, distances = rag.run(file_path=file_path, query=query, configuration_data=configuration_data)
+    retrieved_chunks, distances = rag.run(file_path=file_path, query=query, configuration_data=configuration_data)
+    context = "\n\n".join(retrieved_chunks)
 
     # Checking for available models and selecting one for the LLM
     available_models = rag.hf_client.get_working_models(MODELS_TO_TEST)

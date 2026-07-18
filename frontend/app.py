@@ -36,7 +36,6 @@ with st.sidebar:
     st.caption(f"CET Time: {datetime.now(pytz.timezone('CET')).strftime('%Y-%m-%d %H:%M')}")
 
     st.badge("v0.1.0", color="green")
-    st.badge("Experimental", color="orange")
 
     if st.button("yo?", type="secondary"):
         st.write("yo")

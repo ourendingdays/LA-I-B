@@ -3,9 +3,11 @@ faiss-cpu==1.14.3
 matplotlib>=3.11.0
 numpy>=1.26
 pandas>=3.0.3
+plotly==6.9.0
 scikit-learn>=1.9.0
 streamlit>=1.30.0
 torch>=2.4
+torchvision==0.28.0
 transformers>=4.40
 
 # Software Developement Stuff
