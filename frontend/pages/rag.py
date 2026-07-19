@@ -1,8 +1,7 @@
 # Custom Modules
 from src.rag.hugging_face_client import HuggingFaceClient
-from src.rag.plotting import create_distance_bar_chart
 from src.rag.simple_rag import SimpleRAG
-from src.rag.utils import load_config
+from src.rag.utils import create_distance_bar_chart, load_config
 
 # Data Science Libraries
 import plotly.graph_objects as go
@@ -104,7 +103,7 @@ with st.container(border=True, gap="small"):
     with col2:
         chosen_model = st.text_input("Enter your own (must be an Instruct with chat_completion):", value=chosen_model_predefined)
 
-SIMPLE_RAG_TAB, GRAPH_RAG = st.tabs(["Simplest RAG", "Graph RAG"])
+SIMPLE_RAG_TAB, GRAPH_RAG = st.tabs(["Simplest RAG", "LLM Analysis"])
 
 with SIMPLE_RAG_TAB:
     st.caption("Single Document Analysis Using LLM. It retrieves relevant chunks from a document and generates an answer using a language model.")
@@ -145,6 +144,7 @@ with SIMPLE_RAG_TAB:
         st.button("Answer Question", on_click=answer_question, 
             args=(query, llm_prompt, max_tokens, chosen_model), type="primary")
 
+    # ----------- Display Retrieved Chunks with Distances And Final Answer ------------
     if st.session_state.chunks is not None and st.session_state.distances is not None:
         fig, order = create_distance_bar_chart(st.session_state.chunks, st.session_state.distances)
         st.plotly_chart(fig, width="stretch")
