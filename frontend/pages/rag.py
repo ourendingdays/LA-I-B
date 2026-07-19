@@ -1,5 +1,6 @@
 # Custom Modules
 from src.rag.hugging_face_client import HuggingFaceClient
+from src.rag.plotting import create_distance_bar_chart
 from src.rag.simple_rag import SimpleRAG
 from src.rag.utils import load_config
 
@@ -21,13 +22,6 @@ if 'distances' not in st.session_state:
     st.session_state.distances = None
 if 'answered_question' not in st.session_state:
     st.session_state.answered_question = None
-
-def trigger_retrieve():
-    st.session_state.processing = "retrieve"
-
-def trigger_answer():
-    st.session_state.processing = "answer"
-
 
 @st.cache_data(show_spinner=False)
 def get_available_hf_inference_models():
@@ -57,13 +51,18 @@ def answer_question(query, llm_prompt, max_tokens, chosen_model):
                                  max_tokens=max_tokens)
 
 @st.cache_data(show_spinner=True)
-def get_answer(query, prompt, context, model, max_tokens):   
+def get_answer(query, prompt, context, model, max_tokens):  
+    """
+    Generates an answer to the provided query using the RAG process and the selected LLM model.
+    Guardrails: This function is cached to optimize performance. It will only re-run if the input parameters change.
+    """
     rag = SimpleRAG()
     return rag.answer_question(query=query, prompt=prompt, context=context, model=model, max_tokens=max_tokens)
 
 
 def display_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k):
     """
+    Retrieves document information based on the provided parameters : Context and distances from the RAG process.
     Wrapper: always runs, always writes to session_state — cache hit or miss.
     """
     st.session_state['chunks'], st.session_state['distances'] = get_document_info(file_path, query, llm_prompt, max_tokens,
@@ -89,17 +88,14 @@ def get_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_ch
     chunks, distances = rag.run(file_path=file_path, query=query, configuration_data=configuration_data)
     return chunks, distances
 
+# ------------ Streamlit UI ------------
 st.markdown("# RAG : Document Analysis :material/document_search:")
 st.sidebar.markdown("##### Gentle RAG :material/document_search:")
 
-with st.container(border=True):
+with st.container(border=True, gap="small"):
     st.write("Available Models for Hugging Face Inference API right now.")
-    
-    # st.caption("Go to this URL to see every model available through inference providers, filtered to text generation and sorted by trending")
-    custom_text = "<p style='font-size: 12px; color: gray;'>Go to this URL to see every model available through inference providers, filtered to text generation and sorted by trending</p>"
-    st.markdown(custom_text, unsafe_allow_html=True)
 
-    st.link_button("Hugging Face Models", "https://huggingface.co/models?inference_provider=all&pipeline_tag=text-generation&sort=trending")
+    st.link_button(label="See more", url="https://huggingface.co/models?inference_provider=all&pipeline_tag=text-generation&sort=trending", type="tertiary")
 
     col1, col2 = st.columns([0.4, 0.6])
     with col1:
@@ -112,6 +108,8 @@ SIMPLE_RAG_TAB, GRAPH_RAG = st.tabs(["Simplest RAG", "Graph RAG"])
 
 with SIMPLE_RAG_TAB:
     st.caption("Single Document Analysis Using LLM. It retrieves relevant chunks from a document and generates an answer using a language model.")
+    
+    # ------------ File Upload and Query Input ------------
     uploaded_file = st.file_uploader("Choose a document", type=["txt", "pdf"])
     if uploaded_file is not None:
         st.write("File uploaded:", uploaded_file.name)
@@ -127,6 +125,7 @@ with SIMPLE_RAG_TAB:
     with col2:
         max_tokens = st.slider("Max Tokens", 150, 2000, 200, step=50, help="Maximum number of tokens for the generated answer.")
 
+    # ------------ Configuration Parameters ------------
     with st.expander("Configuration Parameters"):
         with st.container(horizontal=True):    
             with st.container(gap="small"):
@@ -147,47 +146,17 @@ with SIMPLE_RAG_TAB:
             args=(query, llm_prompt, max_tokens, chosen_model), type="primary")
 
     if st.session_state.chunks is not None and st.session_state.distances is not None:
-        # Sort by distance (lowest = most relevant, adjust if your metric is similarity instead)
-        order = sorted(range(len(st.session_state.distances)), key=lambda i: st.session_state.distances[i])
-        sorted_chunks = [st.session_state.chunks[i] for i in order]
-        sorted_distances = [st.session_state.distances[i] for i in order]
-        labels = [f"Chunk {i+1}" for i in order]
-        hover_texts = [c[:300] + ("..." if len(c) > 300 else "") for c in sorted_chunks]
-
-        fig = go.Figure(
-            go.Bar(
-                x=sorted_distances,
-                y=labels,
-                orientation="h",
-                text=[f"{d:.3f}" for d in sorted_distances],
-                textposition="outside",
-                hovertext=hover_texts,
-                hoverinfo="text",
-                marker=dict(
-                    color=sorted_distances,
-                    colorscale="Blues_r",  # darker = closer/more relevant
-                ),
-            )
-        )
-        fig.update_layout(
-            xaxis_title="Distance (lower = more relevant)",
-            yaxis_title="Chunk",
-            yaxis=dict(autorange="reversed"),  # best match at top
-            height=80 + 40 * len(labels),
-            margin=dict(l=10, r=10, t=10, b=10),
-        )
+        fig, order = create_distance_bar_chart(st.session_state.chunks, st.session_state.distances)
         st.plotly_chart(fig, width="stretch")
 
-        # Optional: still let them read the full chunk text below
         with st.expander("View full chunk text"):
-            for label, chunk, dist in zip(labels, sorted_chunks, sorted_distances):
-                st.markdown(f"**{label}** — distance: `{dist:.4f}`")
-                st.text(chunk)
-                st.divider()
+            for i in order:
+                st.markdown(f"**Chunk {i + 1}** — distance: `{st.session_state.distances[i]:.4f}`")
+                st.text(st.session_state.chunks[i])
 
     if st.session_state.answered_question is not None:
         st.divider()
-        st.text_area("Answer", value=st.session_state.answered_question, height=200, disabled=True)
+        st.text_area("Answer", value=st.session_state.answered_question, height=120, disabled=True)
 
 with GRAPH_RAG:
     st.dataframe({"col1": [1, 2, 3], "col2": [4, 5, 6]})

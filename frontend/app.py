@@ -27,15 +27,16 @@ pg.run()
 
 with st.sidebar:
     st.divider()
-    st.caption("@ Pavlo Mospan. 2026")
-    
+    with st.container(horizontal=True):
+        st.caption("@ Pavlo Mospan. 2026")
+        st.badge("v0.1.0", color="green")
+
     ram = psutil.virtual_memory()           # RAM usage
     disk_usage = psutil.disk_usage('/')     # Disk usage for a specific path
 
     st.caption(f"Compute · RAM {ram.percent:.0f}%  · Disk Usage {disk_usage.percent:.0f}%")
     st.caption(f"CET Time: {datetime.now(pytz.timezone('CET')).strftime('%Y-%m-%d %H:%M')}")
 
-    st.badge("v0.1.0", color="green")
 
     if st.button("yo?", type="secondary"):
         st.write("yo")
