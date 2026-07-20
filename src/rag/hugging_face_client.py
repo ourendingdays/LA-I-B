@@ -1,4 +1,6 @@
 # Custom Modules
+from streamlit import context
+
 from src.rag.utils import load_config
 
 # Data Science and NLP Libraries
@@ -62,7 +64,38 @@ class HuggingFaceClient:
             # print(f"{model_name}: FAILED - {str(e)[:80]}")
             return False
 
+    def ask_model(self, query: str, prompt: str, context: str, model: str, max_tokens: int = 200) -> str:
+        """
+        Sends a chat completion request to the Hugging Face Inference API and generates an answer using the LLM based on the provided context.
 
+        Args:
+            query       (str): User query for retrieval.
+            prompt      (str): Prompt template for the LLM.
+            context     (str): Retrieved context to use for generating the answer.
+            model       (str): Name of the LLM model to use for generating the answer.
+            max_tokens  (int): Maximum number of tokens for the generated answer. Default is 200.
+
+        Returns:
+            str: Generated answer from the LLM.
+        """
+        result = self.client.chat_completion(
+            messages=[{
+                "role": "system",
+                "content": f"{prompt} : \n{context}"
+                }, {
+                "role": "user",
+                "content": query
+                }], 
+            model=model,
+            max_tokens=max_tokens
+        )
+        content = result.choices[0].message.content
+        if content is None:
+            raise ValueError(f"Model '{model}' returned no content. Full response: {result}")
+        
+        return content.strip()
+
+    
 if __name__ == "__main__":
     hf_client = HuggingFaceClient()
 

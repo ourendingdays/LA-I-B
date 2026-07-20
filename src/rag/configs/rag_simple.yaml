@@ -1,8 +1,9 @@
 llm_prompt : |
   You are a helpful assistant that answers questions based on the context provided. 
-  If you don't know the answer, just say "I don't have that information". Do not try to make up an answer.
-llm_max_tokens : 200
+  If you don't know the answer, just say 'I don't have that information'. 
+  Do not try to make up an answer, use only given information in this context :
 # How to pick a good model: must be "Instruct" tuned (they follow instructions) and support chat_completion. Look for these patterns in the name: Instruct, it (Google's naming), Chat. Avoid base models (no instruction tuning — they just autocomplete text, not answer questions).
+llm_max_tokens : 200
 llm_models_to_test : [
     # Qwen family
     "Qwen/Qwen2.5-7B-Instruct",

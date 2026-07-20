@@ -1,5 +1,12 @@
+# Data Science Libraries
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+# Standard Libraries
+from typing import List
+import os
 import yaml
 from pathlib import Path
+from pypdf import PdfReader
 import plotly.graph_objects as go
 
 
@@ -16,6 +23,56 @@ def load_config(file_path: Path) -> dict:
     with open(file_path, "r") as f:
         data = yaml.safe_load(f)
     return data
+
+def load_document(file_path: Path):
+    """
+    Loads a document (.txt and .pdf formats) from the given file path and splits it into chunks.
+
+    Args:
+        file_path         (Path)          : Path to the document file.
+    Returns:
+        str: Extracted text from the document.
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File '{file_path}' does not exist")
+
+    if file_path.suffix.lower() == ".txt":
+        with open(file_path, 'r', encoding='utf-8') as f:
+            knowledge_text = f.read()
+    elif file_path.suffix.lower() == ".pdf":
+        reader = PdfReader(file_path)
+        knowledge_text = ""
+        for page in reader.pages:
+            knowledge_text += page.extract_text()
+    else:
+        raise ValueError(f"Unsupported file format: {file_path.suffix}. Only .txt and .pdf are supported.")
+
+    return knowledge_text
+
+def split_text_into_chunks(knowledge_text: str, ts_chunk_size: int = 150, ts_chunk_overlap: int = 20) -> List[str]:
+    """
+    Splits the given knowledge text into chunks.
+    RecursiveCharacterTextSplitter splits on paragraphs ("\n\n"), then newlines ("\n"), then spaces (" "), to keep semantically related text together as much as possible.
+
+    Args:
+        knowledge_text    (str)           : The text to be split into chunks.
+        ts_chunk_size     (int, optional) : Size of each chunk. Defaults to 150.
+        ts_chunk_overlap  (int, optional) : Overlap between chunks. Defaults to 20.
+
+    Returns:
+        list: List of text chunks.
+    """
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=ts_chunk_size,
+        chunk_overlap=ts_chunk_overlap,
+        length_function=len,
+        separators=["\n\n", "\n", " ", ""]
+    )
+
+    chunks = text_splitter.split_text(knowledge_text)
+    # print(f"Total number of chunks created: {len(chunks)}")    
+    return chunks
+
 
 def create_distance_bar_chart(chunks: list[str], distances: list[float]) -> go.Figure:
     """

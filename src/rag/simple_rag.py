@@ -1,26 +1,23 @@
 # Custom Modules
 from src.rag.hugging_face_client import HuggingFaceClient
-from src.rag.utils import load_config
+from src.rag.utils import load_config, load_document, split_text_into_chunks
 
 # Data Science Libraries
 import faiss
 import numpy as np
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 
 # Standard Libraries
 from pathlib import Path
-from pypdf import PdfReader
 import random
 from typing import Dict, List
 
-class SimpleRAG:
-    def __init__(self, model_name="all-MiniLM-L6-v2"):
+class SimpleRAG(HuggingFaceClient):
+    def __init__(self):
         # Initialize the InferenceClient for LLM
-        self.hf_client = HuggingFaceClient()
+        super().__init__()
 
-
-    def run(self, file_path: Path, query: str, configuration_data: Dict) -> tuple[List[str], List[float]]:
+    def preprocess_document(self, file_path: Path, query: str, configuration_data: Dict) -> tuple[List[str], List[float]]:
         """
         Main method to run the RAG pipeline: loads and splits document, creates embeddings and index, performs retrieval of the most relevant chunks.
 
@@ -33,52 +30,18 @@ class SimpleRAG:
             tuple: Retrieved chunks (list of str) and distances (list of floats).
         """
         # Load and split the document into chunks
-        chunks = self.load_and_split_document(file_path = file_path, 
-                                              ts_chunk_size = configuration_data["ts_chunk_size"],
-                                              ts_chunk_overlap = configuration_data["ts_chunk_overlap"])
+        knowledge_text  = load_document(file_path = file_path)
+        chunks          = split_text_into_chunks(knowledge_text = knowledge_text,
+                                        ts_chunk_size = configuration_data["ts_chunk_size"],
+                                        ts_chunk_overlap = configuration_data["ts_chunk_overlap"])
 
         # Create embeddings for the chunks and build a FAISS index
         self.index, self.chunks = self.create_embeddings_and_index(chunks = chunks, model_name = configuration_data.get("sentence_transformer_model", "all-MiniLM-L6-v2"))
 
         # Perform retrieval based on the user query
-        chunks, distances = self.retrieve(query, top_k = configuration_data.get("embeddings_top_k", 3))
+        chunks, distances = self.retrieve_chunks(query, top_k = configuration_data.get("embeddings_top_k", 3))
 
         return chunks, distances
-
-    def load_and_split_document(self, file_path: Path, ts_chunk_size: int = 150, ts_chunk_overlap: int = 20) -> List[str]:
-        """
-        Loads a document (.txt and .pdf formats) from the given file path and splits it into chunks.
-
-        Args:
-            file_path         (Path)          : Path to the document file.
-            ts_chunk_size     (int, optional) : Size of each chunk. Defaults to 150.
-            ts_chunk_overlap  (int, optional) : Overlap between chunks. Defaults to 20
-        Returns:
-            list: List of text chunks.
-        """
-        if file_path.suffix.lower() == ".txt":
-            with open(file_path, 'r', encoding='utf-8') as f:
-                knowledge_text = f.read()
-        elif file_path.suffix.lower() == ".pdf":
-            reader = PdfReader(file_path)
-            knowledge_text = ""
-            for page in reader.pages:
-                knowledge_text += page.extract_text()
-        else:
-            raise ValueError(f"Unsupported file format: {file_path.suffix}. Only .txt and .pdf are supported.")
-
-        # Initializing the Text Splitter, which tries to split on paragraphs ("\n\n"), then newlines ("\n"), then spaces (" "), to keep semantically related text together as much as possible.
-
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=ts_chunk_size,
-            chunk_overlap=ts_chunk_overlap,
-            length_function=len,
-            separators=["\n\n", "\n", " ", ""]
-        )
-
-        chunks = text_splitter.split_text(knowledge_text)
-        # print(f"Total number of chunks created: {len(chunks)}")    
-        return chunks
 
     def create_embeddings_and_index(self, chunks : List[str], model_name : str ="all-MiniLM-L6-v2") -> tuple[faiss.IndexFlatL2, List[str]] :
         """
@@ -109,7 +72,7 @@ class SimpleRAG:
         # print(f"FAISS index created with {index.ntotal} vectors.")
         return index, chunks
 
-    def retrieve(self, query: str, top_k: int = 3) -> tuple[str, List[float]]:
+    def retrieve_chunks(self, query: str, top_k: int = 3) -> tuple[List[str], List[float]]:
         """
         Retrieves the top_k most relevant chunks based on the user query.
 
@@ -134,45 +97,10 @@ class SimpleRAG:
         #     print(f"Chunk {i+1} (Distance: {distances[0][i]}):\n{chunk}\n")
         return retrieved_chunks, distances[0]
 
-    def answer_question(self, query: str, prompt: str, context: str, model: str, max_tokens: int = 200) -> str:
-        """
-        Generates an answer using the LLM based on the provided context.
-
-        Args:
-            query       (str): User query for retrieval.
-            prompt      (str): Prompt template for the LLM.
-            context     (str): Retrieved context to use for generating the answer.
-            model       (str): Name of the LLM model to use for generating the answer.
-            max_tokens  (int): Maximum number of tokens for the generated answer. Default is 200.
-
-        Returns:
-            str: Generated answer from the LLM.
-        """
-
-        # Generate an answer using the LLM with the retrieved context
-        result = self.hf_client.client.chat_completion(
-            messages=[{
-                "role": "system",
-                "content": f"{prompt} : \n{context}"
-            }, {
-                "role": "user",
-                "content": query
-            }],
-            model=model,
-            max_tokens=max_tokens
-        )
-
-        # print(f"--- GENERATED ANSWER ---\n{result.choices[0].message.content}\n")
-        content = result.choices[0].message.content
-        if content is None:
-            raise ValueError(f"Model '{model}' returned no content. Full response: {result}")
-
-        return content.strip()
-    
 
 if __name__ == "__main__":
     config_data = load_config("src/rag/configs/rag_simple.yaml")
-    PROMPT_TEMPLATE             = config_data.get("llm_prompt", "You are a helpful assistant that answers questions based on the context provided. If you don't know the answer, just say 'I don't have that information'. Do not try to make up an answer.")
+    PROMPT_TEMPLATE             = config_data.get("llm_prompt", "You are a helpful assistant that answers questions based on the context provided. If you don't know the answer, just say 'I don't have that information'. Do not try to make up an answer, use only given information in this context :")
     MODELS_TO_TEST              = config_data.get("llm_models_to_test", [])
     TEXT_SPLITTER               = config_data.get("text_splitter", [])
     SENTENCE_TRANSFORMER_MODEL  = config_data.get("sentence_transformer_model", "all-MiniLM-L6-v2")
@@ -180,12 +108,12 @@ if __name__ == "__main__":
     LLM_MAX_TOKENS              = config_data.get("llm_max_tokens", 200)
 
     configuration_data = {
-        "llm_prompt": PROMPT_TEMPLATE,
-        "ts_chunk_size": TEXT_SPLITTER.get("chunk_size", 150),
-        "ts_chunk_overlap": TEXT_SPLITTER.get("chunk_overlap", 20),
-        "sentence_transformer_model": SENTENCE_TRANSFORMER_MODEL,
-        "embeddings_top_k": EMBEDDINGS_TOP_K,
-        "llm_max_tokens": LLM_MAX_TOKENS
+        "llm_prompt"                    : PROMPT_TEMPLATE,
+        "ts_chunk_size"                 : TEXT_SPLITTER.get("chunk_size", 150),
+        "ts_chunk_overlap"              : TEXT_SPLITTER.get("chunk_overlap", 20),
+        "sentence_transformer_model"    : SENTENCE_TRANSFORMER_MODEL,
+        "embeddings_top_k"              : EMBEDDINGS_TOP_K,
+        "llm_max_tokens"                : LLM_MAX_TOKENS
     }
 
     rag = SimpleRAG()
@@ -195,17 +123,16 @@ if __name__ == "__main__":
     #file_path = Path("data/raw/pdf/Full-47.pdf")
     file_path = Path("data/raw/txt/rag_notebook.txt")
     
-    retrieved_chunks, distances = rag.run(file_path=file_path, query=query, configuration_data=configuration_data)
+    retrieved_chunks, distances = rag.preprocess_document(file_path=file_path, query=query, configuration_data=configuration_data)
     context = "\n\n".join(retrieved_chunks)
 
     # Checking for available models and selecting one for the LLM
-    available_models = rag.hf_client.get_working_models(MODELS_TO_TEST)
+    available_models = rag.get_working_models(MODELS_TO_TEST)
     model = random.choice(available_models)
     
-    answer = rag.answer_question(query=query, 
-                                 prompt = configuration_data["llm_prompt"], 
-                                 context=context, 
-                                 model=model,
-                                 max_tokens=configuration_data["llm_max_tokens"])
+    answer = rag.ask_model  (query      = query,
+                                 prompt     = configuration_data["llm_prompt"], 
+                                 context    = context, 
+                                 model      = model,
+                                 max_tokens = configuration_data["llm_max_tokens"])
     print(f"Answer: {answer}")
-

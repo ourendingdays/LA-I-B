@@ -84,7 +84,7 @@ def get_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_ch
     }
 
     rag = SimpleRAG()
-    chunks, distances = rag.run(file_path=file_path, query=query, configuration_data=configuration_data)
+    chunks, distances = rag.preprocess_document(file_path=file_path, query=query, configuration_data=configuration_data)
     return chunks, distances
 
 # ------------ Streamlit UI ------------
