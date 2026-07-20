@@ -100,12 +100,12 @@ class SimpleRAG(HuggingFaceClient):
 
 if __name__ == "__main__":
     config_data = load_config("src/rag/configs/rag_simple.yaml")
-    PROMPT_TEMPLATE             = config_data.get("llm_prompt", "You are a helpful assistant that answers questions based on the context provided. If you don't know the answer, just say 'I don't have that information'. Do not try to make up an answer, use only given information in this context :")
-    MODELS_TO_TEST              = config_data.get("llm_models_to_test", [])
+    PROMPT_TEMPLATE             = config_data['model'].get("llm_prompt", "You are a helpful assistant that answers questions based on the context provided. If you don't know the answer, just say 'I don't have that information'. Do not try to make up an answer, use only given information in this context :")
+    MODELS_TO_TEST              = config_data['model'].get("llm_models_to_test", [])
     TEXT_SPLITTER               = config_data.get("text_splitter", [])
     SENTENCE_TRANSFORMER_MODEL  = config_data.get("sentence_transformer_model", "all-MiniLM-L6-v2")
     EMBEDDINGS_TOP_K            = config_data.get("embeddings_top_k", 3)
-    LLM_MAX_TOKENS              = config_data.get("llm_max_tokens", 200)
+    LLM_MAX_TOKENS              = config_data['model'].get("llm_max_tokens", 200)
 
     configuration_data = {
         "llm_prompt"                    : PROMPT_TEMPLATE,

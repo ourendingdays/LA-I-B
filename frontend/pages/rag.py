@@ -3,9 +3,6 @@ from src.rag.hugging_face_client import HuggingFaceClient
 from src.rag.simple_rag import SimpleRAG
 from src.rag.utils import create_distance_bar_chart, load_config
 
-# Data Science Libraries
-import plotly.graph_objects as go
-
 # Standard Libraries
 from pathlib import Path
 import streamlit as st
@@ -25,7 +22,7 @@ if 'answered_question' not in st.session_state:
 @st.cache_data(show_spinner=False)
 def get_available_hf_inference_models():
     client = HuggingFaceClient()
-    return client.get_working_models(CONFIGURATION_DATA.get("llm_models_to_test", []))
+    return client.get_working_models(CONFIGURATION_DATA["model"].get("llm_models_to_test", []))
 
 def save_uploaded_file(uploaded_file) -> Path:
     suffix = Path(uploaded_file.name).suffix
@@ -117,7 +114,7 @@ with SIMPLE_RAG_TAB:
         st.write("No file uploaded yet. Please upload a document to proceed.")
         file_path = Path("data/raw/txt/rag_notebook.txt")  # Default file path if no file is uploaded
 
-    llm_prompt = st.text_area(label='LLM Prompt', value=CONFIGURATION_DATA.get("llm_prompt"))
+    llm_prompt = st.text_area(label='LLM Prompt', value=CONFIGURATION_DATA["model"].get("llm_prompt"))
     col1, col2 = st.columns([0.75, 0.25])
     with col1:
         query = st.text_input("Query", value="What is the distance from Earth to the Moon?", help="The question you want to ask based on the document's content.")
