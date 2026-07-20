@@ -5,7 +5,7 @@ model:
     Do not try to make up an answer, use only given information in this context :
   # How to pick a good model: must be "Instruct" tuned (they follow instructions) and support chat_completion. Look for these patterns in the name: Instruct, it (Google's naming), Chat. Avoid base models (no instruction tuning — they just autocomplete text, not answer questions).
   llm_max_tokens : 200
-  llm_models_to_test : [
+  instruct_completion_models : [
       # Qwen family
       "Qwen/Qwen2.5-7B-Instruct",
       "Qwen/Qwen2.5-72B-Instruct",
@@ -34,6 +34,9 @@ model:
       # Others
       "HuggingFaceH4/zephyr-7b-beta",
       "NousResearch/Hermes-3-Llama-3.1-8B",
+      ]
+  summarization_models : [
+      "facebook/bart-large-cnn"
       ]
 text_splitter : 
   chunk_size : 150

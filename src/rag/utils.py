@@ -1,5 +1,8 @@
 # Data Science Libraries
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+import nltk
+nltk.download('punkt_tab')  # not 'punkt'
+from nltk.tokenize import sent_tokenize
 
 # Standard Libraries
 from typing import List
@@ -73,6 +76,32 @@ def split_text_into_chunks(knowledge_text: str, ts_chunk_size: int = 150, ts_chu
     # print(f"Total number of chunks created: {len(chunks)}")    
     return chunks
 
+def split_text_into_passages(knowledge_text: str, word_limit: int = 200) -> List[str]:
+    """
+    Splits the given knowledge text into passages.
+    This code tokenizes the document into sentences and combines them into manageable passages for subsequent steps.
+
+    Args:
+        knowledge_text    (str)           : The text to be split into passages.
+        word_limit        (int, optional) : Maximum number of words in each passage. Defaults to 200.
+
+    Returns:
+        list: List of text passages.
+    """
+    sentences = sent_tokenize(knowledge_text)
+
+    # combining sentences into passages
+    passages = []
+    current_passage = ""
+    for sentence in sentences:
+        if len(current_passage.split()) + len(sentence.split()) < word_limit:  # adjust the word limit as needed
+            current_passage += " " + sentence
+        else:
+            passages.append(current_passage.strip())
+            current_passage = sentence
+    if current_passage:
+        passages.append(current_passage.strip())
+    return passages
 
 def create_distance_bar_chart(chunks: list[str], distances: list[float]) -> go.Figure:
     """
@@ -115,3 +144,4 @@ def create_distance_bar_chart(chunks: list[str], distances: list[float]) -> go.F
         margin=dict(l=10, r=10, t=10, b=10),
     )
     return fig, order
+

@@ -1,6 +1,4 @@
 # Custom Modules
-from streamlit import context
-
 from src.rag.utils import load_config
 
 # Data Science and NLP Libraries
@@ -10,6 +8,7 @@ from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 import os
 import random
+import requests
 from typing import List
 
 class HuggingFaceClient:
@@ -95,13 +94,20 @@ class HuggingFaceClient:
         
         return content.strip()
 
-    
+    def request_model(self, api_url: str, input_text: str, result: str) -> str:
+        response = requests.post(api_url, headers=self.headers, json={"inputs": input_text}).json()
+        if result not in response[0]:
+            raise ValueError(f"Result key '{result}' not found in response. Full response: {response}")
+        return response[0][result]
+
+
+
 if __name__ == "__main__":
     hf_client = HuggingFaceClient()
 
     # Get a list of available models that work with the Hugging Face Inference API right now - they rotate availability on the free tier, so some may be down at any given time.
     data = load_config("src/rag/configs/rag_simple.yaml")
-    MODELS_TO_TEST = data.get("llm_models_to_test", [])
+    MODELS_TO_TEST = data.get("instruct_completion_models", [])
 
     available_models = hf_client.get_working_models(MODELS_TO_TEST)
     model = random.choice(available_models)

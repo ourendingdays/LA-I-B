@@ -22,7 +22,7 @@ if 'answered_question' not in st.session_state:
 @st.cache_data(show_spinner=False)
 def get_available_hf_inference_models():
     client = HuggingFaceClient()
-    return client.get_working_models(CONFIGURATION_DATA["model"].get("llm_models_to_test", []))
+    return client.get_working_models(CONFIGURATION_DATA["model"].get("instruct_completion_models", []))
 
 def save_uploaded_file(uploaded_file) -> Path:
     suffix = Path(uploaded_file.name).suffix
