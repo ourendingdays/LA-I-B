@@ -1,7 +1,8 @@
 # Custom Modules
 from src.rag.hugging_face_client import HuggingFaceClient
+from src.rag.simple_doc_analyzer import SimpleDocumentAnalyzer
 from src.rag.simple_rag import SimpleRAG
-from src.rag.utils import create_distance_bar_chart, load_config
+from src.rag.utils import create_distance_bar_chart, load_config, load_document
 
 # Standard Libraries
 from pathlib import Path
@@ -18,6 +19,16 @@ if 'distances' not in st.session_state:
     st.session_state.distances = None
 if 'answered_question' not in st.session_state:
     st.session_state.answered_question = None
+
+def get_summary(file_path: Path, model: str) -> str:
+    doc_analyzer = SimpleDocumentAnalyzer()
+    query = "What is the main topic of the document?"
+
+    knowledge_text  = load_document(file_path = file_path)
+    
+    summary = doc_analyzer.summarize_document(input_text=knowledge_text, 
+                                    model=CONFIGURATION_DATA.get("model", {}).get("summarization_models", ["facebook/bart-large-cnn"])[0])
+    return summary
 
 @st.cache_data(show_spinner=False)
 def get_available_hf_inference_models():
@@ -54,7 +65,6 @@ def get_answer(query, prompt, context, model, max_tokens):
     """
     rag = SimpleRAG()
     return rag.answer_question(query=query, prompt=prompt, context=context, model=model, max_tokens=max_tokens)
-
 
 def display_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k):
     """
@@ -110,6 +120,10 @@ with SIMPLE_RAG_TAB:
     if uploaded_file is not None:
         st.write("File uploaded:", uploaded_file.name)
         file_path = save_uploaded_file(uploaded_file)
+
+        summary = get_summary(file_path=file_path, model=chosen_model)
+        st.text_area("Summary", value=summary, height=80, disabled=True)
+       
     else:
         st.write("No file uploaded yet. Please upload a document to proceed.")
         file_path = Path("data/raw/txt/rag_notebook.txt")  # Default file path if no file is uploaded

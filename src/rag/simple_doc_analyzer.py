@@ -6,7 +6,7 @@ from src.rag.utils import load_config, load_document, split_text_into_passages
 from pathlib import Path
 from typing import List
 
-class Simple_Document_Analyzer(HuggingFaceClient):
+class SimpleDocumentAnalyzer(HuggingFaceClient):
     def __init__(self):
         # Initialize the InferenceClient for LLM
         super().__init__()
@@ -86,7 +86,7 @@ class Simple_Document_Analyzer(HuggingFaceClient):
 
 
 if __name__ == "__main__":
-    doc_analyzer = Simple_Document_Analyzer()
+    doc_analyzer = SimpleDocumentAnalyzer()
     document_path = Path("data/raw/pdf/Full-48.pdf")
     query = "What is the main topic of the document?"
 
