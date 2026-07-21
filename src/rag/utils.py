@@ -1,4 +1,5 @@
 # Data Science Libraries
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import nltk
 nltk.download('punkt_tab')  # not 'punkt'
@@ -32,7 +33,7 @@ def load_document(file_path: Path):
     Loads a document (.txt and .pdf formats) from the given file path and splits it into chunks.
 
     Args:
-        file_path         (Path)          : Path to the document file.
+        file_path (Path): Path to the document file.
     Returns:
         str: Extracted text from the document.
     """
@@ -52,7 +53,25 @@ def load_document(file_path: Path):
 
     return knowledge_text
 
-def split_text_into_chunks(knowledge_text: str, ts_chunk_size: int = 150, ts_chunk_overlap: int = 20) -> List[str]:
+def load_documents(folder_path: Path) -> List[str]:
+    """
+    Loads all documents (.txt and .pdf formats) from the given folder path.
+
+    Args:
+        folder_path (Path): Path to the folder containing document files.
+    Returns:
+        list: List of extracted texts from the documents.
+    """
+    if not os.path.exists(folder_path):
+        raise FileNotFoundError(f"Folder '{folder_path}' does not exist")
+
+    documents = []
+    for file_path in Path(folder_path).glob("*"):
+        if file_path.suffix.lower() in [".txt", ".pdf"]:
+            documents.append(load_document(file_path))
+    return documents
+
+def split_text_into_chunks(knowledge_text: str, ts_chunk_size: int = 150, ts_chunk_overlap: int = 20, source: str = None) -> List[str]:
     """
     Splits the given knowledge text into chunks.
     RecursiveCharacterTextSplitter splits on paragraphs ("\n\n"), then newlines ("\n"), then spaces (" "), to keep semantically related text together as much as possible.
@@ -61,6 +80,7 @@ def split_text_into_chunks(knowledge_text: str, ts_chunk_size: int = 150, ts_chu
         knowledge_text    (str)           : The text to be split into chunks.
         ts_chunk_size     (int, optional) : Size of each chunk. Defaults to 150.
         ts_chunk_overlap  (int, optional) : Overlap between chunks. Defaults to 20.
+        source            (str, optional) : Optional filename/source to tag onto each chunk's metadata.
 
     Returns:
         list: List of text chunks.
@@ -72,9 +92,11 @@ def split_text_into_chunks(knowledge_text: str, ts_chunk_size: int = 150, ts_chu
         separators=["\n\n", "\n", " ", ""]
     )
 
-    chunks = text_splitter.split_text(knowledge_text)
-    # print(f"Total number of chunks created: {len(chunks)}")    
-    return chunks
+    chunks_text = text_splitter.split_text(knowledge_text)
+    metadata = {"source": source} if source else {}
+    chunks_doc = [Document(page_content=c, metadata=metadata) for c in chunks_text]
+
+    return chunks_text, chunks_doc
 
 def split_text_into_passages(knowledge_text: str, word_limit: int = 200) -> List[str]:
     """
@@ -109,8 +131,8 @@ def create_distance_bar_chart(chunks: list[str], distances: list[float]) -> go.F
     (lowest = most relevant, shown at top).
 
     Args:
-        chunks (list[str]): List of text chunks.
-        distances (list[float]): List of distances corresponding to the chunks.
+        chunks    (list[str])     : List of text chunks.
+        distances (list[float])   : List of distances corresponding to the chunks.
 
     Returns:
         tuple[go.Figure, list[int]]: A tuple containing the Plotly Figure object representing the bar chart and the order of the chunks.

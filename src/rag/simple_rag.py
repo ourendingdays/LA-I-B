@@ -31,7 +31,7 @@ class SimpleRAG(HuggingFaceClient):
         """
         # Load and split the document into chunks
         knowledge_text  = load_document(file_path = file_path)
-        chunks          = split_text_into_chunks(knowledge_text = knowledge_text,
+        chunks, _       = split_text_into_chunks(knowledge_text = knowledge_text,
                                         ts_chunk_size = configuration_data["ts_chunk_size"],
                                         ts_chunk_overlap = configuration_data["ts_chunk_overlap"])
 

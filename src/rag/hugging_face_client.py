@@ -101,7 +101,6 @@ class HuggingFaceClient:
         return response[0][result]
 
 
-
 if __name__ == "__main__":
     hf_client = HuggingFaceClient()
 
