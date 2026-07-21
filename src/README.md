@@ -4,6 +4,8 @@ From the project root:
 
 ```bash
 python -m src.rag.simple_rag
+
+python -m src.rag.vector_search_rag
 ```
 Or: 
 
