@@ -17,6 +17,10 @@ class SimpleRAG(HuggingFaceClient):
         # Initialize the InferenceClient for LLM
         super().__init__()
 
+        self.chunk_embeddings = None
+        self.query_embedding = None
+        self.retrieved_indices = None
+
     def preprocess_document(self, file_path: Path, query: str, configuration_data: Dict) -> tuple[List[str], List[float]]:
         """
         Main method to run the RAG pipeline: loads and splits document, creates embeddings and index, performs retrieval of the most relevant chunks.
@@ -69,6 +73,8 @@ class SimpleRAG(HuggingFaceClient):
         # Adding our chunk embeddings to the index. We must convert to float32 for FAISS
         index.add(np.array(chunk_embeddings).astype('float32'))
 
+        self.chunk_embeddings = np.array(chunk_embeddings).astype('float32')
+
         # print(f"FAISS index created with {index.ntotal} vectors.")
         return index, chunks
 
@@ -84,10 +90,11 @@ class SimpleRAG(HuggingFaceClient):
             tuple: Retrieved chunks (list of str) and distances (list of floats).
         """
         # Create embedding for the user query
-        query_embedding = self.embedding_model.encode([query]).astype('float32')
+        self.query_embedding = self.embedding_model.encode([query]).astype('float32')
 
         # Search in the FAISS index for the top_k most similar chunks
-        distances, indices = self.index.search(query_embedding, top_k)
+        distances, indices = self.index.search(self.query_embedding, top_k)
+        self.retrieved_indices = indices[0].tolist()
 
         # Retrieve the actual text chunks based on the indices
         retrieved_chunks = [self.chunks[i] for i in indices[0]]
@@ -97,6 +104,14 @@ class SimpleRAG(HuggingFaceClient):
         #     print(f"Chunk {i+1} (Distance: {distances[0][i]}):\n{chunk}\n")
         return retrieved_chunks, distances[0]
 
+    def get_embedding_visualization_data(self) -> tuple[List[str], np.ndarray, np.ndarray, List[int]]:
+        """
+        Returns everything needed to plot the embedding space: all chunk texts, all chunk embeddings, the query embedding,
+        and the indices of the retrieved (top-k) chunks. Should be called after preprocess_document().
+        """
+        if self.chunk_embeddings is None or self.query_embedding is None:
+            raise ValueError("No embeddings available. Call preprocess_document() first.")
+        return self.chunks, self.chunk_embeddings, self.query_embedding, self.retrieved_indices
 
 if __name__ == "__main__":
     config_data = load_config("src/rag/configs/rag_simple.yaml")

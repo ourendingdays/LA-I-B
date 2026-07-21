@@ -2,7 +2,7 @@
 from src.rag.hugging_face_client import HuggingFaceClient
 from src.rag.simple_doc_analyzer import SimpleDocumentAnalyzer
 from src.rag.simple_rag import SimpleRAG
-from src.rag.utils import create_distance_bar_chart, load_config, load_document
+from src.rag.utils import create_distance_bar_chart, load_config, load_document, create_embedding_scatter
 
 # Standard Libraries
 from pathlib import Path
@@ -19,6 +19,8 @@ if 'distances' not in st.session_state:
     st.session_state.distances = None
 if 'answered_question' not in st.session_state:
     st.session_state.answered_question = None
+if 'embedding_viz' not in st.session_state:
+    st.session_state.embedding_viz = None
 
 def get_summary(file_path: Path, model: str) -> str:
     doc_analyzer = SimpleDocumentAnalyzer()
@@ -66,21 +68,26 @@ def get_answer(query, prompt, context, model, max_tokens):
     rag = SimpleRAG()
     return rag.answer_question(query=query, prompt=prompt, context=context, model=model, max_tokens=max_tokens)
 
-def display_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k):
+def display_document_info(file_path: Path, query: str, llm_prompt: str, max_tokens: int, text_splitter_chunk_size: int, text_splitter_chunk_over: int, sentence_transformer_model: str, embeddings_top_k: int):
     """
     Retrieves document information based on the provided parameters : Context and distances from the RAG process.
     Wrapper: always runs, always writes to session_state — cache hit or miss.
     """
-    st.session_state['chunks'], st.session_state['distances'] = get_document_info(file_path, query, llm_prompt, max_tokens,
+    (st.session_state['chunks'], st.session_state['distances'], all_chunks, chunk_embeddings, query_embedding, retrieved_indices) = get_document_info(
+                                        file_path, query, llm_prompt, max_tokens,
                                            text_splitter_chunk_size, text_splitter_chunk_over,
                                            sentence_transformer_model, embeddings_top_k)
     
+    st.session_state['embedding_viz'] = {
+        "all_chunks": all_chunks,
+        "chunk_embeddings": chunk_embeddings,
+        "query_embedding": query_embedding,
+        "retrieved_indices": retrieved_indices,
+    }
+
+    
 @st.cache_data(show_spinner=True)
 def get_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k):
-    """
-    Retrieves document information based on the provided parameters : Context and distances from the RAG process.
-    Guardrailes: This function is cached to optimize performance. It will only re-run if the input parameters change.
-    """
     configuration_data = {
         "llm_prompt": llm_prompt,
         "ts_chunk_size": text_splitter_chunk_size,
@@ -89,10 +96,10 @@ def get_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_ch
         "embeddings_top_k": embeddings_top_k,
         "llm_max_tokens": max_tokens
     }
-
     rag = SimpleRAG()
     chunks, distances = rag.preprocess_document(file_path=file_path, query=query, configuration_data=configuration_data)
-    return chunks, distances
+    all_chunks, chunk_embeddings, query_embedding, retrieved_indices = rag.get_embedding_visualization_data()
+    return chunks, distances, all_chunks, chunk_embeddings, query_embedding, retrieved_indices
 
 # ------------ Streamlit UI ------------
 st.markdown("# RAG : Document Analysis :material/document_search:")
@@ -164,6 +171,18 @@ with SIMPLE_RAG_TAB:
             for i in order:
                 st.markdown(f"**Chunk {i + 1}** — distance: `{st.session_state.distances[i]:.4f}`")
                 st.text(st.session_state.chunks[i])
+
+    if st.session_state.embedding_viz is not None:
+        st.subheader("Embedding Space")
+        st.caption("2D projection (PCA) of all document chunks. Blue = retrieved for this query, red star = your query.")
+        viz = st.session_state.embedding_viz
+        scatter_fig = create_embedding_scatter(
+            chunk_embeddings=viz["chunk_embeddings"],
+            query_embedding=viz["query_embedding"],
+            chunks=viz["all_chunks"],
+            retrieved_indices=viz["retrieved_indices"],
+        )
+        st.plotly_chart(scatter_fig, width="stretch")
 
     if st.session_state.answered_question is not None:
         st.divider()

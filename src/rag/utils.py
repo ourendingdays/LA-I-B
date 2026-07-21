@@ -4,6 +4,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import nltk
 nltk.download('punkt_tab')  # not 'punkt'
 from nltk.tokenize import sent_tokenize
+import numpy as np
+from sklearn.decomposition import PCA
 
 # Standard Libraries
 from typing import List
@@ -167,3 +169,71 @@ def create_distance_bar_chart(chunks: list[str], distances: list[float]) -> go.F
     )
     return fig, order
 
+def create_embedding_scatter(chunk_embeddings: np.ndarray, query_embedding: np.ndarray, chunks: List[str], retrieved_indices: List[int]) -> go.Figure:
+    """
+    Projects chunk + query embeddings into 2D via PCA and plots them,
+    highlighting which chunks were retrieved for the current query.
+    """
+    n_samples = chunk_embeddings.shape[0] + 1
+    n_components = min(2, n_samples - 1)  # guard against tiny doc/chunk counts
+
+    all_embeddings = np.vstack([chunk_embeddings, query_embedding])
+    reduced = PCA(n_components=n_components, random_state=42).fit_transform(all_embeddings)
+
+    # pad to 2D if PCA had to reduce further (e.g. only 1-2 chunks total)
+    if reduced.shape[1] < 2:
+        reduced = np.hstack([reduced, np.zeros((reduced.shape[0], 1))])
+
+    chunk_coords = reduced[:-1]
+    query_coord = reduced[-1]
+
+    retrieved_set = set(retrieved_indices)
+    non_retrieved_idx = [i for i in range(len(chunks)) if i not in retrieved_set]
+    retrieved_idx = list(retrieved_set)
+
+    def hover_text(i):
+        preview = chunks[i][:150] + ("..." if len(chunks[i]) > 150 else "")
+        return f"Chunk {i + 1}<br>{preview}"
+
+    fig = go.Figure()
+
+    if non_retrieved_idx:
+        fig.add_trace(go.Scatter(
+            x=chunk_coords[non_retrieved_idx, 0],
+            y=chunk_coords[non_retrieved_idx, 1],
+            mode="markers",
+            marker=dict(size=8, color="lightgray"),
+            text=[hover_text(i) for i in non_retrieved_idx],
+            hoverinfo="text",
+            name="Other chunks"
+        ))
+
+    if retrieved_idx:
+        fig.add_trace(go.Scatter(
+            x=chunk_coords[retrieved_idx, 0],
+            y=chunk_coords[retrieved_idx, 1],
+            mode="markers",
+            marker=dict(size=13, color="royalblue"),
+            text=[hover_text(i) for i in retrieved_idx],
+            hoverinfo="text",
+            name="Retrieved chunks"
+        ))
+
+    fig.add_trace(go.Scatter(
+        x=[query_coord[0]],
+        y=[query_coord[1]],
+        mode="markers",
+        marker=dict(size=18, color="crimson", symbol="star"),
+        text=["Query"],
+        hoverinfo="text",
+        name="Query"
+    ))
+
+    fig.update_layout(
+        xaxis_title="PCA Dimension 1",
+        yaxis_title="PCA Dimension 2",
+        height=480,
+        margin=dict(l=10, r=10, t=30, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
+    )
+    return fig
