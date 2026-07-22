@@ -1,10 +1,10 @@
-# RA(I)G
+# LA(I)B
 
-A collection of Retrieval-Augmented Generation practices, gathered together in a form of notebooks and Web Application.
+A collection of Data Science practices, gathered together in a form of notebooks and Web Application.
 
 ## Overview
 
-RA(I)G provides comprehensive tools and utilities for building scalable systems with modern development practices.
+LA(I)B provides comprehensive tools and utilities for building scalable systems with modern development practices.
 The idea is to build code that would let test the most recent and modern things locally, on the small machines. Every line of code has been build and tested on `CPX22 — 2 vCPUs, 4 GB RAM` (3,7 Gb + 2Gb swap) - no more swap thrashing, frozen SSH sessions, and killing zombie processes. 
 
 ## Getting started
