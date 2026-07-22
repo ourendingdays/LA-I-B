@@ -82,7 +82,7 @@ class GraphRAG(HuggingFaceClient):
 
         return self.KG, self.triples
 
-    def retrieve_graph_context(self, entity: str, max_depth: int = 2) -> str:
+    def retrieve_graph_context(self, entity: str, max_depth: int = 2) -> tuple[str, set, list]:
         """
         Retrieves context from the stored knowledge graph via multi-hop traversal
         starting at `entity`.
@@ -92,16 +92,17 @@ class GraphRAG(HuggingFaceClient):
             max_depth (int) : Maximum traversal depth. Default is 2.
 
         Returns:
-            str: Retrieved context as a period-joined string of facts.
+            tuple: (context string, set of visited node names, list of (u, v) traversed edges)
         """
         if self.KG is None:
             raise ValueError("No knowledge graph built yet. Call build_knowledge_graph() first.")
 
         if entity not in self.KG.nodes:
-            return ""
+            return "", set(), []
 
         context = set()
         visited_nodes = set()
+        traversed_edges = []
 
         def dfs(node, depth):
             if depth > max_depth:
@@ -111,17 +112,19 @@ class GraphRAG(HuggingFaceClient):
             for neighbor in self.KG.successors(node):
                 relation = self.KG.get_edge_data(node, neighbor)["label"]
                 context.add(f"{node} {relation} {neighbor}")
+                traversed_edges.append((node, neighbor))
                 if neighbor not in visited_nodes:
                     dfs(neighbor, depth + 1)
 
             for predecessor in self.KG.predecessors(node):
                 relation = self.KG.get_edge_data(predecessor, node)["label"]
                 context.add(f"{predecessor} {relation} {node}")
+                traversed_edges.append((predecessor, node))
                 if predecessor not in visited_nodes:
                     dfs(predecessor, depth + 1)
 
         dfs(entity, 1)
-        return ". ".join(context)
+        return ". ".join(context), visited_nodes, traversed_edges
 
     def extract_entity_from_question(self, question: str, model: str) -> str:
         """
@@ -141,7 +144,7 @@ class GraphRAG(HuggingFaceClient):
         entity = self.ask_model(prompt=prompt, query=question, context="", model=model, max_tokens=30)
         return entity.strip().strip('."\'')
 
-    def graph_rag_answer(self, question: str, model: str, entity: Optional[str] = None, max_depth: int = 3) -> str:
+    def graph_rag_answer(self, question: str, model: str, entity: Optional[str] = None, max_depth: int = 3) -> dict:
         """
         Answers a question using multi-hop graph context. If `entity` isn't given,
         it's auto-extracted from the question against the stored graph's nodes.
@@ -153,18 +156,31 @@ class GraphRAG(HuggingFaceClient):
             max_depth (int)           : Maximum traversal depth. Default is 3.
 
         Returns:
-            str: Generated answer from the LLM.
+            dict: {
+                "answer": str,
+                "entity": str,
+                "graph_context": str,
+                "visited_nodes": set,
+                "traversed_edges": list[tuple],
+            }
         """
         if entity is None:
             entity = self.extract_entity_from_question(question=question, model=model)
 
-        graph_context = self.retrieve_graph_context(entity=entity, max_depth=max_depth)
+        graph_context, visited_nodes, traversed_edges = self.retrieve_graph_context(entity=entity, max_depth=max_depth)
 
         if not graph_context:
-            return f"No information about '{entity}' was found in the knowledge graph."
+            answer = f"No information about '{entity}' was found in the knowledge graph."
+        else:
+            answer = self.ask_model(prompt=ANSWER_PROMPT, query=question, context=graph_context, model=model, max_tokens=200)
 
-        return self.ask_model(prompt=ANSWER_PROMPT, query=question, context=graph_context, model=model, max_tokens=200)
-
+        return {
+            "answer": answer,
+            "entity": entity,
+            "graph_context": graph_context,
+            "visited_nodes": visited_nodes,
+            "traversed_edges": traversed_edges,
+        }
 
 if __name__ == "__main__":
     graph_rag = GraphRAG()
@@ -182,6 +198,5 @@ if __name__ == "__main__":
     question = "On which natural satellite did Apollo land?"
 
     _, _ = graph_rag.build_knowledge_graph(text=text, model=model)
-    answer = graph_rag.graph_rag_answer(question=question, model=model)
-
-    print(f"\nFinal Answer:\n{answer}")
+    result = graph_rag.graph_rag_answer(question=question, model=model)
+    print(f"\nFinal Answer:\n{result['answer']}")

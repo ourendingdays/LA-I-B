@@ -1,8 +1,9 @@
 # Custom Modules
 from src.rag.hugging_face_client import HuggingFaceClient
 from src.rag.simple_doc_analyzer import SimpleDocumentAnalyzer
+from src.rag.simple_graphrag import GraphRAG
 from src.rag.simple_rag import SimpleRAG
-from src.rag.utils import create_distance_bar_chart, load_config, load_document, create_embedding_scatter
+from src.rag.utils import create_distance_bar_chart, load_config, load_document, create_embedding_scatter, create_graph_visualization
 
 # Standard Libraries
 from pathlib import Path
@@ -11,6 +12,8 @@ import tempfile
 
 
 CONFIGURATION_DATA = load_config("src/rag/configs/rag_simple.yaml")
+
+# --- RAG
 if 'context' not in st.session_state:
     st.session_state.context = None
 if 'chunks' not in st.session_state:
@@ -66,7 +69,7 @@ def get_answer(query, prompt, context, model, max_tokens):
     Guardrails: This function is cached to optimize performance. It will only re-run if the input parameters change.
     """
     rag = SimpleRAG()
-    return rag.answer_question(query=query, prompt=prompt, context=context, model=model, max_tokens=max_tokens)
+    return rag.ask_model(query=query, prompt=prompt, context=context, model=model, max_tokens=max_tokens)
 
 def display_document_info(file_path: Path, query: str, llm_prompt: str, max_tokens: int, text_splitter_chunk_size: int, text_splitter_chunk_over: int, sentence_transformer_model: str, embeddings_top_k: int):
     """
@@ -85,7 +88,6 @@ def display_document_info(file_path: Path, query: str, llm_prompt: str, max_toke
         "retrieved_indices": retrieved_indices,
     }
 
-    
 @st.cache_data(show_spinner=True)
 def get_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k):
     configuration_data = {
@@ -100,6 +102,27 @@ def get_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_ch
     chunks, distances = rag.preprocess_document(file_path=file_path, query=query, configuration_data=configuration_data)
     all_chunks, chunk_embeddings, query_embedding, retrieved_indices = rag.get_embedding_visualization_data()
     return chunks, distances, all_chunks, chunk_embeddings, query_embedding, retrieved_indices
+
+
+# --- GraphRAG
+if 'kg' not in st.session_state:
+    st.session_state.kg = None
+if 'triples' not in st.session_state:
+    st.session_state.triples = None
+if 'graph_result' not in st.session_state:
+    st.session_state.graph_result = None
+if 'graph_processing' not in st.session_state:
+    st.session_state.graph_processing = None
+
+def trigger_build_graph():
+    st.session_state.graph_processing = "build"
+
+def trigger_ask_graph():
+    st.session_state.graph_processing = "ask"
+
+@st.cache_resource(show_spinner=False)
+def get_graph_rag_client():
+    return GraphRAG()
 
 # ------------ Streamlit UI ------------
 st.markdown("# RAG : Document Analysis :material/document_search:")
@@ -117,7 +140,7 @@ with st.container(border=True, gap="small"):
     with col2:
         chosen_model = st.text_input("Enter your own (must be an Instruct with chat_completion):", value=chosen_model_predefined)
 
-SIMPLE_RAG_TAB, GRAPH_RAG = st.tabs(["Simplest RAG", "LLM Analysis"])
+SIMPLE_RAG_TAB, GRAPH_RAG = st.tabs(["Simplest RAG", "Graph RAG"])
 
 with SIMPLE_RAG_TAB:
     st.caption("Single Document Analysis Using LLM. It retrieves relevant chunks from a document and generates an answer using a language model.")
@@ -189,4 +212,80 @@ with SIMPLE_RAG_TAB:
         st.text_area("Answer", value=st.session_state.answered_question, height=120, disabled=True)
 
 with GRAPH_RAG:
-    st.dataframe({"col1": [1, 2, 3], "col2": [4, 5, 6]})
+    st.caption("Graph RAG is is a network of entities (nodes) and relationships (edges) - it views a text as a network of connected facts.")
+    st.text("Extracts entities and relationships into a knowledge graph, then answers questions via multi-hop graph traversal — good for connecting facts that vector search alone can't link.")
+
+    graph_text = st.text_area(
+        "Text to build the knowledge graph from",
+        value="The Moon orbits Earth. The Moon has an atmosphere called the Exosphere. "
+              "Apollo 11 landed on the Moon. The Moon has a crater named the South Pole-Aitken Basin. "
+              "Earth's Moon is classified as a natural satellite.",
+        height=120
+    )
+
+    st.button("Build Knowledge Graph", on_click=trigger_build_graph, type="primary", disabled=st.session_state.graph_processing is not None)
+
+    if st.session_state.graph_processing == "build":
+        with st.spinner("Extracting entities and building graph...", show_time=True):
+            graph_rag = get_graph_rag_client()
+            kg, triples = graph_rag.build_knowledge_graph(text=graph_text, model=chosen_model)
+            st.session_state.kg = kg
+            st.session_state.triples = triples
+            st.session_state.graph_result = None  # clear any stale answer from a previous graph
+        st.session_state.graph_processing = None
+        st.rerun()
+
+    if st.session_state.kg is not None:
+        st.divider()
+        st.subheader("Knowledge Graph")
+
+        with st.expander("Extracted triples"):
+            st.dataframe(
+                [{"Head": t.get("head"), "Relation": t.get("relation"), "Tail": t.get("tail")} for t in st.session_state.triples],
+                width="stretch"
+            )
+
+        # Highlight the last traversal path, if there is one, otherwise show the plain graph
+        highlight_nodes = st.session_state.graph_result["visited_nodes"] if st.session_state.graph_result else None
+        highlight_edges = st.session_state.graph_result["traversed_edges"] if st.session_state.graph_result else None
+
+        graph_html = create_graph_visualization(st.session_state.kg, highlight_nodes, highlight_edges)
+        st.components.v1.html(graph_html, height=520)
+
+        st.divider()
+        st.subheader("Ask the Graph")
+
+        entities = list(st.session_state.kg.nodes())
+        col1, col2 = st.columns([0.6, 0.4])
+        with col1:
+            graph_question = st.text_input("Question", value="On which natural satellite did Apollo land?")
+        with col2:
+            manual_entity = st.selectbox("Starting entity (optional — auto-detected if left blank)", ["(auto-detect)"] + entities)
+
+        graph_max_depth = st.slider("Traversal depth (multi-hop distance)", 1, 5, 3)
+
+        st.button("Ask Graph", on_click=trigger_ask_graph, type="primary",
+                  disabled=st.session_state.graph_processing is not None)
+
+        if st.session_state.graph_processing == "ask":
+            with st.spinner("Traversing graph and generating answer...", show_time=True):
+                graph_rag = get_graph_rag_client()
+                entity_arg = None if manual_entity == "(auto-detect)" else manual_entity
+                st.session_state.graph_result = graph_rag.graph_rag_answer(
+                    question=graph_question,
+                    model=chosen_model,
+                    entity=entity_arg,
+                    max_depth=graph_max_depth
+                )
+            st.session_state.graph_processing = None
+            st.rerun()
+
+        if st.session_state.graph_result is not None:
+            st.divider()
+            result = st.session_state.graph_result
+            st.markdown(f"**Starting entity:** `{result['entity']}`")
+            with st.expander("Retrieved graph context"):
+                st.text(result["graph_context"] or "(no context found)")
+            st.text_area("Answer", value=result["answer"], height=100, disabled=True)
+    else:
+        st.info("Build a knowledge graph above to get started.")

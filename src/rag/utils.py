@@ -8,12 +8,14 @@ import numpy as np
 from sklearn.decomposition import PCA
 
 # Standard Libraries
-from typing import List
+import networkx as nx
 import os
 import yaml
 from pathlib import Path
 from pypdf import PdfReader
+from pyvis.network import Network
 import plotly.graph_objects as go
+from typing import List
 
 
 def load_config(file_path: Path) -> dict:
@@ -237,3 +239,46 @@ def create_embedding_scatter(chunk_embeddings: np.ndarray, query_embedding: np.n
         legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
     )
     return fig
+
+def create_graph_visualization(kg: "nx.DiGraph", highlight_nodes: set = None, highlight_edges: list = None, height: str = "500px") -> str:
+    """
+    Renders a networkx DiGraph as an interactive pyvis HTML graph.
+    Optionally highlights a traversal path (visited nodes / edges) in a
+    distinct color against the rest of the graph.
+
+    Args:
+        kg              (nx.DiGraph) : The knowledge graph to render.
+        highlight_nodes (set)        : Node names to highlight (e.g. traversal path).
+        highlight_edges (list)       : (u, v) tuples to highlight.
+        height          (str)        : Pixel height of the rendered graph.
+
+    Returns:
+        str: Self-contained HTML for embedding via st.components.v1.html().
+    """
+    highlight_nodes = highlight_nodes or set()
+    highlight_edges = set(highlight_edges or [])
+
+    net = Network(height=height, width="100%", directed=True, notebook=False, bgcolor="#ffffff")
+    net.barnes_hut(gravity=-3000, spring_length=150)
+
+    for node in kg.nodes():
+        is_highlighted = node in highlight_nodes
+        net.add_node(
+            node,
+            label=node,
+            color="#e63946" if is_highlighted else "#a8dadc",
+            size=25 if is_highlighted else 15,
+            font={"size": 14 if is_highlighted else 10}
+        )
+
+    for u, v, data in kg.edges(data=True):
+        is_highlighted = (u, v) in highlight_edges
+        net.add_edge(
+            u, v,
+            label=data.get("label", ""),
+            color="#e63946" if is_highlighted else "#cccccc",
+            width=3 if is_highlighted else 1,
+            arrows="to"
+        )
+
+    return net.generate_html()
