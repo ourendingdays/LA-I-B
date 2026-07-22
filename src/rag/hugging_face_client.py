@@ -63,7 +63,7 @@ class HuggingFaceClient:
             # print(f"{model_name}: FAILED - {str(e)[:80]}")
             return False
 
-    def ask_model(self, query: str, prompt: str, context: str, model: str, max_tokens: int = 200) -> str:
+    def ask_model(self, query: str, prompt: str,  model: str, context: str = "", max_tokens: int = 200) -> str:
         """
         Sends a chat completion request to the Hugging Face Inference API and generates an answer using the LLM based on the provided context.
 
