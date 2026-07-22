@@ -14,7 +14,7 @@ st.logo("frontend/assets/app-icon-C-monogram-1024.png", size="large")
 # Define the pages
 page_main = st.Page("pages/main_page.py", title="Home", icon=":material/home:")
 page_doc_analysis = st.Page("pages/rag.py", title="RAG", icon=":material/document_search:")
-page_ai_agent = st.Page("pages/ai_agent.py", title="AI Agent", icon=":material/robot_2:")
+page_ai_agent = st.Page("pages/ai_agent.py", title="AI Agents", icon=":material/robot_2:")
 
 # Set up navigation
 pg = st.navigation({

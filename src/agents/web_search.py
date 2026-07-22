@@ -32,7 +32,6 @@ class WebSearchAgent:
         self.available_models = self.get_working_models(MODELS_TO_TEST)
         self.model = random.choice(self.available_models)
 
-
     def change_model(self, new_model: str):
         """
         Changes the model used for inference.
