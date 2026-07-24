@@ -1,11 +1,12 @@
 # Custom Modules
+from src.rag.clients import embedding_client
 from src.rag.clients.hugging_face_client import HuggingFaceClient
+from src.rag.clients.embedding_client import EmbeddingClient
 from src.rag.config import load_config
 from src.rag.documents.loaders import load_documents
 from src.rag.documents.splitters import split_text_into_chunks
 
 # Data Science Libraries
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
 # Standard Libraries
@@ -28,9 +29,10 @@ ANSWER_WITH_CONTEXT_PROMPT = "Use this context to answer the question. If the an
 
 
 class AgenticRAG(HuggingFaceClient):
-    def __init__(self):
+    def __init__(self, embedding_client: EmbeddingClient = None):
         super().__init__()
-        self.embedding_function = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        
+        self.embedding_client = embedding_client or EmbeddingClient()
         self.vector_store = None
 
     def build_vector_store(self, folder_path: str, ts_chunk_size: int = 150, ts_chunk_overlap: int = 20, collection_name: str = "agentic_rag_collection") -> Chroma:
@@ -59,7 +61,7 @@ class AgenticRAG(HuggingFaceClient):
 
         self.vector_store = Chroma.from_documents(
             documents=all_chunks_doc,
-            embedding=self.embedding_function,
+            embedding=self.embedding_client.get_langchain_embeddings(),
             collection_name=collection_name
         )
         return self.vector_store

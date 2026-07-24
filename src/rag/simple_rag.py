@@ -1,5 +1,6 @@
 # Custom Modules
 from src.rag.clients.hugging_face_client import HuggingFaceClient
+from src.rag.clients.embedding_client import EmbeddingClient
 from src.rag.config import load_config
 from src.rag.documents.loaders import load_document
 from src.rag.documents.splitters import split_text_into_chunks
@@ -7,7 +8,6 @@ from src.rag.documents.splitters import split_text_into_chunks
 # Data Science Libraries
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
 
 # Standard Libraries
 from pathlib import Path
@@ -15,9 +15,11 @@ import random
 from typing import Dict, List
 
 class SimpleRAG(HuggingFaceClient):
-    def __init__(self):
+    def __init__(self, embedding_client: EmbeddingClient = None):
         # Initialize the InferenceClient for LLM
         super().__init__()
+
+        self.embedding_client = embedding_client or EmbeddingClient()
 
         self.chunk_embeddings = None
         self.query_embedding = None
@@ -59,11 +61,9 @@ class SimpleRAG(HuggingFaceClient):
         Returns:
             tuple: FAISS index and the list of chunks.
         """
-        
-        self.embedding_model = SentenceTransformer(model_name)
 
         # Embedding all chunks. This will take a moment as the model "reads" and "understands" each chunk.
-        chunk_embeddings = self.embedding_model.encode(chunks)
+        chunk_embeddings = self.embedding_client.encode(chunks) 
 
         # dimension of our vectors are 384 (the size of the embedding model output)
         dims = chunk_embeddings.shape[1]
@@ -92,7 +92,7 @@ class SimpleRAG(HuggingFaceClient):
             tuple: Retrieved chunks (list of str) and distances (list of floats).
         """
         # Create embedding for the user query
-        self.query_embedding = self.embedding_model.encode([query]).astype('float32')
+        self.query_embedding = self.embedding_client.encode([query]).astype('float32')
 
         # Search in the FAISS index for the top_k most similar chunks
         distances, indices = self.index.search(self.query_embedding, top_k)
@@ -147,9 +147,9 @@ if __name__ == "__main__":
     available_models = rag.get_working_models(MODELS_TO_TEST)
     model = random.choice(available_models)
     
-    answer = rag.ask_model  (query          = query,
-                                 prompt     = configuration_data["llm_prompt"], 
-                                 context    = context, 
-                                 model      = model,
-                                 max_tokens = configuration_data["llm_max_tokens"])
+    answer = rag.ask_model  (query     = query,
+                            prompt     = configuration_data["llm_prompt"], 
+                            context    = context, 
+                            model      = model,
+                            max_tokens = configuration_data["llm_max_tokens"])
     print(f"Answer: {answer}")

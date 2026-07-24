@@ -1,28 +1,25 @@
 # Custom Modules
 from src.rag.clients.hugging_face_client import HuggingFaceClient
+from src.rag.clients.embedding_client import EmbeddingClient
 from src.rag.config import load_config
 from src.rag.documents.loaders import load_documents
 from src.rag.documents.splitters import split_text_into_chunks
 
 # Data Science Libraries
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
 # Standard Libraries
 import os
 from pathlib import Path
 import random
-from typing import Dict
 
 
 class VectorSearchRAG(HuggingFaceClient):
-    def __init__(self):
+    def __init__(self, embedding_client: EmbeddingClient = None):
         # Initialize the InferenceClient for LLM
         super().__init__()
 
-        self.embedding_function = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2" # lightweight, open-source model that runs quickly on CPU, this model is only ~80MB
-        )
+        self.embedding_client = embedding_client or EmbeddingClient()
 
         self.vector_store = None  # Initialize vector_store as None
         
@@ -39,7 +36,7 @@ class VectorSearchRAG(HuggingFaceClient):
         """
         vector_store = Chroma.from_documents(
             documents           = chunks,
-            embedding           = self.embedding_function,
+            embedding           = self.embedding_client.self.embedding_client.get_langchain_embeddings(),
             persist_directory   = str(vector_db_path), # saves the database in a folder called ./chroma_db. That way, you don’t have to rebuild the database every time you restart the app; it stays saved.
             collection_name     = collection_name
         )
@@ -57,7 +54,7 @@ class VectorSearchRAG(HuggingFaceClient):
         """
         self.vector_store = Chroma(
             persist_directory   = str(vector_db_path),
-            embedding_function  = self.embedding_function,
+            embedding_function  = self.embedding_client.embedding_function,
             collection_name     = collection_name
         )
         return self.vector_store
