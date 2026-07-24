@@ -1,6 +1,8 @@
 # Custom Modules
-from src.rag.hugging_face_client import HuggingFaceClient
-from src.rag.utils import load_config, load_document, split_text_into_passages
+from src.rag.clients.hugging_face_client import HuggingFaceClient
+from src.rag.config import load_config
+from src.rag.documents.loaders import load_document
+from src.rag.documents.splitters import split_text_into_passages
 
 # Standard Libraries
 from pathlib import Path

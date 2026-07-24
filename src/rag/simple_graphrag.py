@@ -1,6 +1,6 @@
 # Custom Modules
-from src.rag.hugging_face_client import HuggingFaceClient
-from src.rag.utils import load_config
+from src.rag.clients.hugging_face_client import HuggingFaceClient
+from src.rag.config import load_config
 
 # Data Science Libraries
 import networkx as nx

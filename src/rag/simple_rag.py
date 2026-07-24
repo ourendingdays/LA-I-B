@@ -1,6 +1,8 @@
 # Custom Modules
-from src.rag.hugging_face_client import HuggingFaceClient
-from src.rag.utils import load_config, load_document, split_text_into_chunks
+from src.rag.clients.hugging_face_client import HuggingFaceClient
+from src.rag.config import load_config
+from src.rag.documents.loaders import load_document
+from src.rag.documents.splitters import split_text_into_chunks
 
 # Data Science Libraries
 import faiss
@@ -145,7 +147,7 @@ if __name__ == "__main__":
     available_models = rag.get_working_models(MODELS_TO_TEST)
     model = random.choice(available_models)
     
-    answer = rag.ask_model  (query      = query,
+    answer = rag.ask_model  (query          = query,
                                  prompt     = configuration_data["llm_prompt"], 
                                  context    = context, 
                                  model      = model,

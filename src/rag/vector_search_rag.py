@@ -1,6 +1,8 @@
 # Custom Modules
-from src.rag.hugging_face_client import HuggingFaceClient
-from src.rag.utils import load_config, load_documents, split_text_into_chunks
+from src.rag.clients.hugging_face_client import HuggingFaceClient
+from src.rag.config import load_config
+from src.rag.documents.loaders import load_documents
+from src.rag.documents.splitters import split_text_into_chunks
 
 # Data Science Libraries
 from langchain_huggingface import HuggingFaceEmbeddings

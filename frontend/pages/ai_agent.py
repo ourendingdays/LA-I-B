@@ -1,8 +1,7 @@
 # Custom Modules
-from src.rag.hugging_face_client import HuggingFaceClient
-from src.agents.web_search import WebSearchAgent
-from src.rag.simple_rag import SimpleRAG
-from src.rag.utils import create_distance_bar_chart, load_config, load_document, create_embedding_scatter, create_graph_visualization
+from src.rag.clients.hugging_face_client import HuggingFaceClient
+from src.rag.agents.web_search import WebSearchAgent
+from src.rag.config import load_config
 
 # Standard Libraries
 import streamlit as st
