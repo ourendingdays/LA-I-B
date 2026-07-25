@@ -32,3 +32,10 @@ This notebooks takes text data (.txt), splits into chunks, makes embeddings out 
     - `langchain`                   : Only using its text splitter, which is a smart shortcut that saves hours of regex pain.
     - `duckduckgo`                  : Search Engine
     - `chroma`                      : Vector DB 
+
+##### FAISS v Chroma
+<i>Chroma and FAISS are both implementations of approximate/exact nearest-neighbor search, at different levels of abstraction.</i>
+
+<b>FAISS</b> (Facebook AI Similarity Search) is a low-level library, that has  an index data structure (IndexFlatL2 in code) and does only one thing: given a query vector, find the closest stored vectors. No persistence, no metadata, no collections.
+
+<b>Chroma</b> is a vector database that also does "find nearest vectors", but wrapping it with persistence, metadata storage, named collections, and a query API. Under the hood it uses its own indexing (HNSW via hnswlib).
