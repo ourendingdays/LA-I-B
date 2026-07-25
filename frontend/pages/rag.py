@@ -1,11 +1,11 @@
 # Custom Modules
 from src.rag.clients.hugging_face_client import HuggingFaceClient
-from src.rag.simple_doc_analyzer import SimpleDocumentAnalyzer
-from src.rag.simple_graphrag import GraphRAG
-from src.rag.simple_rag import SimpleRAG
+from src.rag.pipelines.simple_doc_analyzer import SimpleDocumentAnalyzer
+from src.rag.pipelines.simple_graphrag import GraphRAG
+from src.rag.pipelines.simple_rag import SimpleRAG
 from src.rag.config import load_config
 from src.rag.documents.loaders import load_document
-from src.rag.utils import create_distance_bar_chart, create_embedding_scatter, create_graph_visualization
+from src.rag.visualization.charts_and_plots import create_distance_bar_chart, create_embedding_scatter, create_graph_visualization
 
 # Standard Libraries
 from pathlib import Path

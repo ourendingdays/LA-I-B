@@ -2,12 +2,17 @@
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import nltk
-nltk.download('punkt_tab')  # not 'punkt'
 from nltk.tokenize import sent_tokenize
 
 # Standard Libraries
 from typing import List
 
+def _ensure_punkt_tab():
+    """Downloads punkt_tab only if it isn't already present locally — skips the network check entirely otherwise."""
+    try:
+        nltk.data.find('tokenizers/punkt_tab')
+    except LookupError:
+        nltk.download('punkt_tab')
 
 def split_text_into_chunks(knowledge_text: str, ts_chunk_size: int = 150, ts_chunk_overlap: int = 20, source: str = None) -> List[str]:
     """
@@ -48,6 +53,7 @@ def split_text_into_passages(knowledge_text: str, word_limit: int = 200) -> List
     Returns:
         list: List of text passages.
     """
+    _ensure_punkt_tab()  # Ensure the punkt_tab tokenizer is available
     sentences = sent_tokenize(knowledge_text)
 
     # combining sentences into passages
