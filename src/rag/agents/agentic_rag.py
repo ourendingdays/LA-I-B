@@ -5,6 +5,7 @@ from src.rag.clients.embedding_client import EmbeddingClient
 from src.rag.config import load_config
 from src.rag.documents.loaders import load_documents
 from src.rag.documents.splitters import split_text_into_chunks
+from src.rag.storage.chroma_store import ChromaStore
 
 # Data Science Libraries
 from langchain_chroma import Chroma
@@ -29,11 +30,11 @@ ANSWER_WITH_CONTEXT_PROMPT = "Use this context to answer the question. If the an
 
 
 class AgenticRAG(HuggingFaceClient):
-    def __init__(self, embedding_client: EmbeddingClient = None):
+    def __init__(self, chroma_store: ChromaStore):
         super().__init__()
-        
-        self.embedding_client = embedding_client or EmbeddingClient()
+        self.chroma_store = chroma_store
         self.vector_store = None
+        self.collection_name = None
 
     def build_vector_store(self, folder_path: str, ts_chunk_size: int = 150, ts_chunk_overlap: int = 20, collection_name: str = "agentic_rag_collection") -> Chroma:
         """
@@ -59,11 +60,8 @@ class AgenticRAG(HuggingFaceClient):
             )
             all_chunks_doc.extend(chunks_doc)
 
-        self.vector_store = Chroma.from_documents(
-            documents=all_chunks_doc,
-            embedding=self.embedding_client.get_langchain_embeddings(),
-            collection_name=collection_name
-        )
+        self.collection_name = self.chroma_store.generate_collection_name(prefix="agentic")
+        self.vector_store = self.chroma_store.create_vector_store(all_chunks_doc, collection_name=self.collection_name)
         return self.vector_store
 
     def agent_controller(self, query: str, model: str) -> Literal["search", "direct"]:
@@ -130,6 +128,9 @@ class AgenticRAG(HuggingFaceClient):
 
 
 if __name__ == "__main__":
+    embedding_client = EmbeddingClient()
+    chroma_store = ChromaStore(embedding_client, persist_directory=None) 
+
     agent = AgenticRAG()
 
     config_data = load_config("src/rag/configs/rag_simple.yaml")

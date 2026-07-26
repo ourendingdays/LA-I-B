@@ -1,5 +1,5 @@
 # Custom Modules
-from src.rag.utils import load_config
+from src.rag.visualization.charts_and_plots import load_config
 
 # Data Science and NLP Libraries
 from huggingface_hub import InferenceClient
