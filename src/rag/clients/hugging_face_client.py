@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     # Get a list of available models that work with the Hugging Face Inference API right now - they rotate availability on the free tier, so some may be down at any given time.
     data = load_config("src/rag/configs/rag_simple.yaml")
-    MODELS_TO_TEST = data.get("instruct_completion_models", [])
+    MODELS_TO_TEST = data.get("model", {}).get("instruct_completion_models", [])
 
     available_models = hf_client.get_working_models(MODELS_TO_TEST)
     model = random.choice(available_models)

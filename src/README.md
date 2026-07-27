@@ -3,10 +3,13 @@
 From the project root: 
 
 ```bash
-python -m src.rag.simple_rag
+python -m src.rag.pipelines.simple_doc_analyzer
 
-python -m src.rag.vector_search_rag
+python -m src.rag.pipelinessimple_rag
+
+python -m src.rag.pipelinesvector_search_rag
 ```
+
 Or: 
 
 ```bash
