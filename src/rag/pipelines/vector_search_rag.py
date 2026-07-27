@@ -18,8 +18,43 @@ class VectorSearchRAG(HuggingFaceClient):
         # Initialize the InferenceClient for LLM
         super().__init__()
 
-        self.vector_store = chroma_store  # Initialize vector_store as None
-    
+        self.chroma = chroma_store  
+        self.vector_store = None
+
+    def initialize_knowledge_base(self, folder_path: str, collection_name: str, ts_chunk_size: int = 150, ts_chunk_overlap: int = 20) -> Chroma:
+        """
+        Initializes the knowledge base by loading documents from a folder, splitting them into chunks, and creating a vector store.
+
+        Args:
+            folder_path (str): Path to the folder containing .txt/.pdf documents.
+            collection_name (str): Name of the Chroma collection.
+            ts_chunk_size (int): Chunk size for splitting the documents. Default is 150.
+            ts_chunk_overlap (int): Chunk overlap for splitting the documents. Default is 20.   
+
+        Returns:
+            Chroma: The created vector store instance.
+        """
+        documents = load_documents(folder_path=folder_path)
+        all_chunks = []
+        for doc_text in documents:
+            _, chunks_doc = split_text_into_chunks(
+                knowledge_text=doc_text,
+                ts_chunk_size=ts_chunk_size,
+                ts_chunk_overlap=ts_chunk_overlap
+            )
+            all_chunks.extend(chunks_doc)
+
+        self.vector_store = self.chroma.get_or_create(chunks=all_chunks, collection_name=collection_name)
+        return self.vector_store
+
+    def get_vector_store(self) -> Chroma:
+        """
+        Returns the current vector store instance.
+
+        Returns:
+            Chroma: The current vector store instance.
+        """
+        return self.vector_store
 
     def query_rag_system(self, query_text: str, vector_store: Chroma, prompt: str, model: str, top_k: int=3, max_tokens: int=300) -> str:
         """
@@ -58,15 +93,14 @@ if __name__ == "__main__":
     TEXT_SPLITTER               = config_data_rag.get("text_splitter", {})
     SENTENCE_TRANSFORMER_MODEL  = config_data_rag.get("sentence_transformer_model", "all-MiniLM-L6-v2")
     EMBEDDINGS_TOP_K            = config_data_rag.get("embeddings_top_k", 3)
-    LLM_MAX_TOKENS              = config_data_rag['model'].get("llm_max_tokens", 200)
 
     configuration_data_rag = {
         "llm_prompt"                    : PROMPT_TEMPLATE,
         "ts_chunk_size"                 : TEXT_SPLITTER.get("chunk_size", 150),
         "ts_chunk_overlap"              : TEXT_SPLITTER.get("chunk_overlap", 20),
-        "sentence_transformer_model"    : SENTENCE_TRANSFORMER_MODEL,
         "embeddings_top_k"              : EMBEDDINGS_TOP_K,
-        "llm_max_tokens"                : LLM_MAX_TOKENS
+        "models_to_test"                : MODELS_TO_TEST,
+        "sent_trans_model"              : SENTENCE_TRANSFORMER_MODEL
     }
 
     config_data_vs = load_config("src/rag/configs/vector_store.yaml")
@@ -77,35 +111,26 @@ if __name__ == "__main__":
     }
 
     # Initialize the EmbeddingClient and ChromaStore
-    embedding_client = EmbeddingClient(model_name=SENTENCE_TRANSFORMER_MODEL)
-    chroma_store = ChromaStore(embedding_client, persist_directory=config_data_vs["vector_db_path"])
-
-    # Loading documents and splitting them into chunks
-    documents = load_documents(folder_path=config_data_vs["document_folder_path"])
-    all_chunks = []
-    for doc_text in documents:
-        _, chunks_doc = split_text_into_chunks(
-            knowledge_text=doc_text,
-            ts_chunk_size=TEXT_SPLITTER.get("chunk_size", 150),
-            ts_chunk_overlap=TEXT_SPLITTER.get("chunk_overlap", 20)
-        )
-        all_chunks.extend(chunks_doc)
-
-    query = "What is an Eclipse?"
-
-    # Creating or getting the vector store via ChromaStore
-    vector_store = chroma_store.get_or_create(chunks = all_chunks)
+    embedding_client = EmbeddingClient(model_name=configuration_data_rag["sent_trans_model"])
+    chroma_store = ChromaStore(embedding_client, persist_directory=configuration_data_vs["vector_db_path"])
 
     # querying
     vector_search_rag = VectorSearchRAG(chroma_store=chroma_store)
-    available_models = vector_search_rag.get_working_models(config_data_rag['model'].get("instruct_completion_models", []))
+    vector_store = vector_search_rag.initialize_knowledge_base(
+        folder_path=configuration_data_vs["document_folder_path"],
+        collection_name=configuration_data_vs["collection_name"],
+        ts_chunk_size=configuration_data_rag["ts_chunk_size"],  
+        ts_chunk_overlap=configuration_data_rag["ts_chunk_overlap"])
+
+    available_models = vector_search_rag.get_working_models(configuration_data_rag["models_to_test"])
     model = random.choice(available_models)
 
+    query = "What is an Eclipse?"
     result = vector_search_rag.query_rag_system(
         query_text=query,
         vector_store=vector_store,
-        prompt=config_data_rag['model'].get("llm_prompt"),
+        prompt=configuration_data_rag['llm_prompt'],
         model=model,
-        top_k=config_data_rag.get("embeddings_top_k", 3)
+        top_k=configuration_data_rag["embeddings_top_k"]
     )
     print(f"Result: {result}")

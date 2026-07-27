@@ -5,13 +5,11 @@ from src.rag.documents.splitters import split_text_into_chunks
 
 # Data Science Libraries
 from langchain_chroma import Chroma
-from langchain_chroma import Chroma
 from langchain_core.documents import Document
 
 
 # Standard Libraries
 import os
-from pathlib import Path
 from typing import List, Optional
 import uuid
 
@@ -29,66 +27,45 @@ class ChromaStore:
         self.embedding_client = embedding_client
         self.persist_directory = persist_directory
 
-    def create_vector_store(self, chunks: List[Document], collection_name: str = None) -> Chroma:
+    def list_collections(self) -> List[str]:
+        """Returns the names of every collection currently stored."""
+        if not self.persist_directory:
+            return []  # nothing persisted, so nothing to list
+        # Chroma object connects to the same on-disk DB regardless of collection_name;
+        # .list_collections() on its underlying client gives us every collection in it.
+        temp = Chroma(persist_directory=self.persist_directory, embedding_function=self.embedding_client.get_langchain_embeddings())
+        return [c.name for c in temp._client.list_collections()]
+
+    def get_or_create(self, chunks: List[Document], collection_name: str) -> Chroma:
         """
-        Creates a vector store from the provided text chunks using Chroma and HuggingFaceEmbeddings.
+        Returns a Chroma vector store instance based on the provided collection name and chunks.
+        If the collection already exists, it loads it. If not, it creates a new one using the provided chunks.
 
         Args:
             chunks (List[Document]): List of text chunks to be stored in the vector store.
-            collection_name (str): Name of the collection to create in the vector store.
+            collection_name (str): Name of the collection to load or create in the vector store.
         Returns:
-            Chroma: Created vector store instance.
+            Chroma: Loaded or created vector store instance.
+        Behavior:
+            collection_name given + already exists  -> loads it (ignores `chunks`)
+            collection_name given + doesn't exist    -> creates it from `chunks`
+            collection_name not given                -> generates a random name, creates it from `chunks`
         """
+        if collection_name and collection_name in self.list_collections():
+            return Chroma(
+                persist_directory=self.persist_directory,
+                embedding_function=self.embedding_client.get_langchain_embeddings(),
+                collection_name=collection_name,
+            )
         if collection_name is None:
             collection_name = self.generate_collection_name(prefix="session")
 
         return Chroma.from_documents(
-            documents           = chunks,
-            embedding           = self.embedding_client.get_langchain_embeddings(),
-            persist_directory   = self.persist_directory, # saves the database in a folder
-            collection_name     = collection_name
+            documents=chunks,
+            embedding=self.embedding_client.get_langchain_embeddings(),
+            persist_directory=self.persist_directory,
+            collection_name=collection_name,
         )
-
-    def load_vector_store(self, collection_name: str) -> Chroma:
-        """
-        Loads an existing vector store from the specified directory using Chroma and HuggingFaceEmbeddings.
-        
-        Args:
-            collection_name (str): Name of the collection to load from the vector store.
-        Returns:
-            Chroma: Loaded vector store instance.
-        """
-        if self.persist_directory is None:
-            raise ValueError("Cannot load a collection without a persist_directory.")
-        
-        return Chroma(
-            persist_directory   = self.persist_directory,
-            embedding_function  = self.embedding_client.get_langchain_embeddings(),
-            collection_name     = collection_name
-        )
-
-    def get_vector_store(self):
-        """
-        Returns the vector store instance. If it hasn't been initialized yet, raises an error.
-
-        Returns:
-            Chroma: The vector store instance.
-        """
-        if self.vector_store is None:
-            raise ValueError("Vector store has not been initialized. Please call 'initialize_vector_store' first.")
-        return self.vector_store
-
-    def get_or_create(self, chunks: List[Document], collection_name: str) -> Chroma:
-        """VectorSearchRAG's 'initialize_vector_store' pattern, generalized.
-        Args:
-            chunks (List[Document]): List of text chunks to be stored in the vector store.
-            collection_name (str): Name of the collection to create or load in the vector store.
-        Returns:
-            Chroma: Created or loaded vector store instance.
-        """
-        if self.persist_directory and self._collection_exists():
-            return self.load_vector_store(collection_name=collection_name)
-        return self.create_vector_store(chunks, collection_name=collection_name)
     
     def generate_collection_name(self, prefix: str = "session") -> str:
         """ Generates a unique collection name using the provided prefix and a random UUID.
@@ -98,8 +75,3 @@ class ChromaStore:
             str: Generated unique collection name.
         """
         return f"{prefix}_{uuid.uuid4().hex[:8]}"
-
-    def _collection_exists(self) -> bool:
-        # Simplification: checks if the persist directory has been initialized at all.
-        # A more precise check would query Chroma's client for existing collection names.
-        return os.path.exists(self.persist_directory)
