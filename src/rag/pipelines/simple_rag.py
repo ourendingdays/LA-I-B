@@ -42,10 +42,10 @@ class SimpleRAG(HuggingFaceClient):
                                                 ts_chunk_size = ts_chunk_size,
                                                 ts_chunk_overlap = ts_chunk_overlap)
 
-        # Create embeddings for the chunks and build a FAISS index
+        # Creating embeddings for the chunks and build a FAISS index
         self.faiss_index.create_embeddings_and_index(chunks = chunks)
 
-        # Perform retrieval based on the user query
+        # Performing retrieval based on the user query
         chunks, distances = self.faiss_index.retrieve_chunks(query, top_k = embeddings_top_k)
 
         return chunks, distances
@@ -61,19 +61,19 @@ class SimpleRAG(HuggingFaceClient):
 
 
 if __name__ == "__main__":
+    # Loading configuration data
     config_data = load_config("src/rag/configs/rag_simple.yaml")
     PROMPT_TEMPLATE             = config_data['model'].get("llm_prompt")
     MODELS_TO_TEST              = config_data['model'].get("instruct_completion_models", [])
     TEXT_SPLITTER               = config_data.get("text_splitter", {})
-    SENTENCE_TRANSFORMER_MODEL  = config_data.get("sentence_transformer_model", "all-MiniLM-L6-v2")
     EMBEDDINGS_TOP_K            = config_data.get("embeddings_top_k", 3)
     LLM_MAX_TOKENS              = config_data['model'].get("llm_max_tokens", 200)
 
+    # User can change these values in the Stremlit app, but I hardcode them here to give a sense, as if they come from elsewhere.
     configuration_data = {
         "llm_prompt"                    : PROMPT_TEMPLATE,
         "ts_chunk_size"                 : TEXT_SPLITTER.get("chunk_size", 150),
         "ts_chunk_overlap"              : TEXT_SPLITTER.get("chunk_overlap", 20),
-        "sentence_transformer_model"    : SENTENCE_TRANSFORMER_MODEL,
         "embeddings_top_k"              : EMBEDDINGS_TOP_K,
         "llm_max_tokens"                : LLM_MAX_TOKENS
     }
@@ -82,10 +82,10 @@ if __name__ == "__main__":
     #query = "What is the main topic of the document?"  
     query = 'What is the distance from Earth to the Sun?'
 
-    #file_path = Path("data/raw/pdf/Full-47.pdf")
-    file_path = Path("data/raw/txt/rag_notebook.txt")
+    file_path = Path("data/raw/pdf/Full-47.pdf")
+    # file_path = Path("data/raw/txt/rag_notebook.txt")
     
-    retrieved_chunks, distances = rag.preprocess_document(file_path=file_path, query=query, 
+    retrieved_chunks, _ = rag.preprocess_document(file_path=file_path, query=query, 
                                                           ts_chunk_size=configuration_data["ts_chunk_size"], 
                                                           ts_chunk_overlap=configuration_data["ts_chunk_overlap"], 
                                                           embeddings_top_k=configuration_data["embeddings_top_k"])

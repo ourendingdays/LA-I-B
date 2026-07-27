@@ -67,6 +67,15 @@ class SimpleDocumentAnalyzer(HuggingFaceClient):
         return questions[:min_questions]
     
     def generate_passages_with_questions(self, input_text: str, model: str = "Qwen/Qwen2.5-7B-Instruct") -> tuple[list[str], list[str]]:
+        """
+        Splits the input text into passages, generates questions for each passage, and retrieves answers for each question using the specified model.
+        Args:
+            input_text (str): The text to be analyzed.
+            model (str): The model to use for question answering. Defaults to "Qwen/Qwen2.5-7B-Instruct".
+
+        Returns:
+            tuple: A tuple containing a list of passages and a dictionary mapping passage indices to question-answer pairs.
+        """
         passages = split_text_into_passages(input_text)
 
         question_answer_passage = {}
@@ -95,8 +104,8 @@ if __name__ == "__main__":
     knowledge_text  = load_document(file_path = document_path)
     
     config_data = load_config("src/rag/configs/rag_simple.yaml")    
-    summary = doc_analyzer.summarize_document(input_text=knowledge_text, 
-                                    model=config_data.get("model", {}).get("summarization_models", ["facebook/bart-large-cnn"])[0])
+    MODEL                       = config_data['model'].get("summarization_models")[0]
+    summary = doc_analyzer.summarize_document(input_text=knowledge_text, model=MODEL)
     
     print(f"Summary : {summary}")
 
