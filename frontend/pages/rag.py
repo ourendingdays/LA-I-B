@@ -108,6 +108,13 @@ def get_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_ch
     all_chunks, chunk_embeddings, query_embedding, retrieved_indices = rag.get_embedding_visualization_data()
     return chunks, distances, all_chunks, chunk_embeddings, query_embedding, retrieved_indices
 
+def process_simple_rag(file_path: Path, query: str, llm_prompt: str, max_tokens: int, text_splitter_chunk_size: int, text_splitter_chunk_over: int, sentence_transformer_model: str, embeddings_top_k: int, chosen_model: str):
+    """
+    Processes the RAG pipeline: retrieves document information and generates an answer to the provided query.
+    Wrapper: always runs, always writes to session_state — cache hit or miss.
+    """
+    display_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k)
+    answer_question(query, llm_prompt, max_tokens, chosen_model)
 
 # --- GraphRAG
 if 'kg' not in st.session_state:
@@ -148,7 +155,7 @@ with st.container(border=True, gap="small"):
 SIMPLE_RAG_TAB, GRAPH_RAG = st.tabs(["Simplest RAG", "Graph RAG"])
 
 with SIMPLE_RAG_TAB:
-    st.caption("Single Document Analysis Using LLM. It retrieves relevant chunks from a document and generates an answer using a language model.")
+    st.caption("Document Summary")
     
     # ------------ File Upload and Query Input ------------
     uploaded_file = st.file_uploader("Choose a document", type=["txt", "pdf"])
@@ -171,7 +178,8 @@ with SIMPLE_RAG_TAB:
         max_tokens = st.slider("Max Tokens", 150, 2000, 200, step=50, help="Maximum number of tokens for the generated answer.")
 
     # ------------ Configuration Parameters ------------
-    with st.expander("Configuration Parameters"):
+    with st.container(border=True, gap="small"):
+        st.caption("Configuration Parameters")
         with st.container(horizontal=True):    
             with st.container(gap="small"):
                 text_splitter_chunk_size = st.slider("Chunk Size", 50, 500, 150, step=50, help="Size of each text chunk.")
@@ -183,37 +191,42 @@ with SIMPLE_RAG_TAB:
                 embeddings_top_k = st.slider("Top K", 1, 10, 3, step=1, help="Number of top relevant chunks to retrieve.")
 
     with st.container(horizontal=True, horizontal_alignment="right"):
-        st.button("Retrieve Text Chunks", 
-                  on_click=display_document_info, 
-                  args=(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k), 
+        st.button("Result", 
+                  on_click=process_simple_rag,
+                  args=(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k, chosen_model),
                   type="primary")
-        st.button("Answer Question", on_click=answer_question, 
-            args=(query, llm_prompt, max_tokens, chosen_model), type="primary")
+        # st.button("Retrieve Text Chunks", 
+        #           on_click=display_document_info, 
+        #           args=(file_path, query, llm_prompt, max_tokens, text_splitter_chunk_size, text_splitter_chunk_over, sentence_transformer_model, embeddings_top_k), 
+        #           type="primary")
+        # st.button("Answer Question", on_click=answer_question, 
+        #     args=(query, llm_prompt, max_tokens, chosen_model), type="primary")
 
     # ----------- Display Retrieved Chunks with Distances And Final Answer ------------
-    if st.session_state.chunks is not None and st.session_state.distances is not None:
-        fig, order = create_distance_bar_chart(st.session_state.chunks, st.session_state.distances)
-        st.plotly_chart(fig, width="stretch")
+    with st.expander("View retrieved text chunks and their distances"):
+        if st.session_state.chunks is not None and st.session_state.distances is not None:
+            st.caption("The retrieved text chunks are ranked by their relevance to the query, with distances indicating how closely they match the query.")
+            fig, order = create_distance_bar_chart(st.session_state.chunks, st.session_state.distances)
+            st.plotly_chart(fig, width="stretch")
 
-        with st.expander("View full chunk text"):
-            for i in order:
-                st.markdown(f"**Chunk {i + 1}** — distance: `{st.session_state.distances[i]:.4f}`")
-                st.text(st.session_state.chunks[i])
+            with st.expander("View full chunk text"):
+                for i in order:
+                    st.markdown(f"**Chunk {i + 1}** — distance: `{st.session_state.distances[i]:.4f}`")
+                    st.text(st.session_state.chunks[i])
 
-    if st.session_state.embedding_viz is not None:
-        st.subheader("Embedding Space")
-        st.caption("2D projection (PCA) of all document chunks. Blue = retrieved for this query, red star = your query.")
-        viz = st.session_state.embedding_viz
-        scatter_fig = create_embedding_scatter(
-            chunk_embeddings=viz["chunk_embeddings"],
-            query_embedding=viz["query_embedding"],
-            chunks=viz["all_chunks"],
-            retrieved_indices=viz["retrieved_indices"],
-        )
-        st.plotly_chart(scatter_fig, width="stretch")
+        if st.session_state.embedding_viz is not None:
+            st.subheader("Embedding Space")
+            st.caption("2D projection (PCA) of all document chunks. Blue = retrieved for this query, red star = your query.")
+            viz = st.session_state.embedding_viz
+            scatter_fig = create_embedding_scatter(
+                chunk_embeddings=viz["chunk_embeddings"],
+                query_embedding=viz["query_embedding"],
+                chunks=viz["all_chunks"],
+                retrieved_indices=viz["retrieved_indices"],
+            )
+            st.plotly_chart(scatter_fig, width="stretch")
 
     if st.session_state.answered_question is not None:
-        st.divider()
         st.text_area("Answer", value=st.session_state.answered_question, height=120, disabled=True)
 
 with GRAPH_RAG:
