@@ -6,6 +6,10 @@ from src.rag.config import load_config
 # Standard Libraries
 import streamlit as st
 
+PROMPT_TEMPLATE = """You are a helpful AI assistant. Answer the user's question
+                based *only* on the following search results. If the search results
+                are empty or do not contain the answer, say 'I could not find
+                any information on that.'"""
 
 CONFIGURATION_DATA = load_config("src/rag/configs/rag_simple.yaml")
 
@@ -41,9 +45,11 @@ def web_search(query: str, max_results: int, chosen_model: str):
             st.error(str(e))
             return
 
-    context = agent.web_search(query)
-    prompt = agent.build_prompt(query, context)
-    st.session_state.web_search_result = agent.ask_alm(prompt)
+    content = agent.web_search(query)
+    st.session_state.web_search_result = agent.ask_model(query = content, 
+                           prompt = PROMPT_TEMPLATE,  
+                           model = agent.model, 
+                           context = query)
 
     
 # ------------ Streamlit UI ------------
