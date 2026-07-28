@@ -11,7 +11,8 @@ PROMPT_TEMPLATE = """You are a helpful AI assistant. Answer the user's question
                 are empty or do not contain the answer, say 'I could not find
                 any information on that.'"""
 
-CONFIGURATION_DATA = load_config("src/rag/configs/rag_simple.yaml")
+CONFIGURATION_RAG = load_config("src/rag/configs/rag_simple.yaml")
+CONFIGURATION_WEB = load_config("src/rag/configs/web_agent.yaml")
 
 if 'web_search_result' not in st.session_state:
     st.session_state.web_search_result = None
@@ -19,7 +20,7 @@ if 'web_search_result' not in st.session_state:
 @st.cache_data(show_spinner=False)
 def get_available_hf_inference_models():
     client = HuggingFaceClient()
-    return client.get_working_models(CONFIGURATION_DATA["model"].get("instruct_completion_models", []))
+    return client.get_working_models(CONFIGURATION_RAG["model"].get("instruct_completion_models", []))
 
 @st.cache_data(show_spinner=True)
 def web_search(query: str, max_results: int, chosen_model: str):
@@ -73,7 +74,7 @@ col1, col2 = st.columns([0.75, 0.25])
 with col1:
     query = st.text_input("Query", value="Who was in Apollo 11 crew?", help="The question you want to search the internet for.")
 with col2:
-    max_results = st.slider("Max Results", 1, 30, 3, step=1, help="Maximum number of web search resultsto retrieve.")
+    max_results = st.slider("Max Results", 1, 30, CONFIGURATION_WEB["web_search"]["max_results"], step=1, help="Maximum number of web search resultsto retrieve.")
 
 with st.container(horizontal=True, horizontal_alignment="right"):
         st.button("Search", on_click=web_search, args=(query, max_results, chosen_model), type="primary")
