@@ -157,12 +157,17 @@ class WebResearchAgent(HuggingFaceClient):
         return " ".join(lines)
 
 
-    def run(self, query: str, config: dict) -> dict:
+    def run(self, query: str, use_llm_summary: bool = False, passages_per_page: int= 4, 
+            top_passages: int = 5, summary_sentences: int = 3, max_results: int = 5) -> dict:
         """Main method to run the web research agent: performs web search, fetches and chunks documents, creates embeddings, ranks passages, and optionally summarizes them.
         
         Args:
-            query (str): The search query.
-            config (dict): Configuration dictionary containing parameters like use_llm_summary, passages_per_page, and top_passages.
+            query               (str)   : The search query.
+            use_llm_summary     (bool)  : Whether to use LLM for summarization.
+            passages_per_page   (int)   : Number of passages per page.
+            top_passages        (int)   : Number of top passages to consider.
+            summary_sentences   (int)   : Number of sentences in the summary.
+            max_results         (int)   : Maximum number of search results to fetch.
         Returns:
             dict: Contains the query, top passages, summary, and elapsed time.
         """
@@ -170,7 +175,7 @@ class WebResearchAgent(HuggingFaceClient):
         start = time.time()
         
         # Starting the search
-        urls = self.search_web(query = query, max_results = config["max_results"])
+        urls = self.search_web(query = query, max_results = max_results)
         print(f"Found {len(urls)} urls.")
         
         # Fetch & Chunk
@@ -180,7 +185,7 @@ class WebResearchAgent(HuggingFaceClient):
             if not txt:
                 continue
             chunks = chunk_passages(txt, max_words=120)
-            for c in chunks[:config["passages_per_page"]]:
+            for c in chunks[:passages_per_page]:
                 docs.append({"url": u, "passage": c})
         
         if not docs:
@@ -195,7 +200,7 @@ class WebResearchAgent(HuggingFaceClient):
 
         # Ranking by similarity
         sims = [self.cosine(e, q_emb) for e in emb_texts]
-        top_idx = np.argsort(sims)[::-1][:config["top_passages"]]
+        top_idx = np.argsort(sims)[::-1][:top_passages]
         top_passages = [{
             "url": docs[i]["url"],
             "passage": docs[i]["passage"],
@@ -203,14 +208,14 @@ class WebResearchAgent(HuggingFaceClient):
         } for i in top_idx]
 
         # Summarization
-        if config["use_llm_summary"]:
+        if use_llm_summary:
             context_str = "\n\n".join(f"[Source: {p['url']}]\n{p['passage']}" for p in top_passages)
             prompt = "Based on the research passages below, provide a clear, concise summary that answers the question. Cite the sources."
             llm_context = f"Research Passages:\n{context_str}\n\nSummary:"
             llm_query = f"Question: {query}"
             summary = self.ask_model(query=llm_query, prompt=prompt, context=llm_context, model=self.model, max_tokens=300)
         else:
-            summary = self._extractive_summary(q_emb=q_emb, top_passages=top_passages, summary_sentences=config["summary_sentences"])
+            summary = self._extractive_summary(q_emb=q_emb, top_passages=top_passages, summary_sentences=summary_sentences)
 
         elapsed = time.time() - start
         return {
@@ -226,17 +231,13 @@ if __name__ == "__main__":
     agent = WebResearchAgent()
     config = load_config("src/rag/configs/web_agent.yaml")
 
-    CONF = {
-        "use_llm_summary": config["web_research_agent"]["use_llm_summary"],
-        "passages_per_page": config["web_research_agent"]["passages_per_page"],
-        "top_passages": config["web_research_agent"]["top_passages"],
-        "summary_sentences": config["web_research_agent"]["summary_sentences"],
-        "max_results": config["web_search"]["max_results"],
-    }
-
     q = "What causes the long heat waves in Europe and how they originate?"
     print(f"\nResearching: {q}\n")
-    out = agent.run(query=q, config=CONF)
+    out = agent.run(query=q, use_llm_summary = config["web_research_agent"]["use_llm_summary"], 
+                    passages_per_page = config["web_research_agent"]["passages_per_page"], 
+                    top_passages = config["web_research_agent"]["top_passages"], 
+                    summary_sentences = config["web_research_agent"]["summary_sentences"], 
+                    max_results = config["web_search"]["max_results"],)
 
     print("\nTop passages:")
     for p in out["passages"]:
