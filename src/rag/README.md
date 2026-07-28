@@ -112,7 +112,23 @@ Charts and plots
 
 ## `pipelines/`
 
-The actual end-to-end RAG and Agents implementations. Each composes `clients/`, `documents/`, and `storage/` — none of them reimplement loading, chunking, or storage logic themselves.
+
+### Run the code as a module, not a script
+
+Example from the project root: 
+
+```bash
+python -m src.rag.pipelines.simple_rag
+```
+
+Or:  
+
+```bash
+python src/rag/hugging_face_client
+```
+
+
+> The actual end-to-end RAG and Agents implementations. Each composes `clients/`, `documents/`, and `storage/` — none of them reimplement loading, chunking, or storage logic themselves.
 
 
 #TODO: check for consistency ;ter, sicne i am redesigning code a lot as of late.
@@ -143,21 +159,12 @@ query. Meant for "search across everything I've uploaded, across sessions."
 ### `simple_graphrag.py` — `GraphRAG`
 *(or `graph/graph_rag.py`)*
 
-Knowledge-graph-based retrieval via multi-hop traversal — answers questions
-by walking entity relationships instead of nearest-neighbor vector search.
-Good for questions vector search can't answer because the connecting fact
-spans multiple hops.
+Knowledge-graph-based retrieval via multi-hop traversal — answers questions by walking entity relationships instead of nearest-neighbor vector search. 
 
-- `build_knowledge_graph(text, model)` — extracts (head, relation, tail)
-  triples via the LLM, builds a `networkx.DiGraph`, stores it on `self.KG`.
-- `retrieve_graph_context(entity, max_depth)` — DFS traversal from a starting
-  entity, returns the context string plus the visited nodes/edges (for
-  highlighting in `create_graph_visualization`).
-- `extract_entity_from_question(question, model)` — LLM picks which known
-  graph node a free-text question is about, so the user doesn't have to name
-  the entity manually.
-- `graph_rag_answer(question, model, entity=None, max_depth)` — full
-  pipeline: auto-extract entity if not given → traverse → answer.
+- `build_knowledge_graph(text, model)` — extracts (head, relation, tail) triples via the LLM, builds a `networkx.DiGraph`, stores it on `self.KG`.
+- `retrieve_graph_context(entity, max_depth)` — DFS traversal from a starting entity, returns the context string plus the visited nodes/edges (for highlighting in `create_graph_visualization`).
+- `extract_entity_from_question(question, model)` — LLM picks which known graph node a free-text question is about, so the user doesn't have to name the entity manually.
+- `graph_rag_answer(question, model, entity=None, max_depth)` — full pipeline: auto-extract entity if not given → traverse → answer.
 
 ---
 
@@ -171,25 +178,18 @@ Routes each query through an LLM-based decision (search vs. answer directly)
 before touching retrieval at all — avoids always searching regardless of
 whether the question needs it.
 
-- `agent_controller(query, model)` — LLM call that returns `"search"` or
-  `"direct"`.
-- `build_vector_store(folder_path, ts_chunk_size, ts_chunk_overlap)` — loads
-  and chunks a folder, then delegates the actual Chroma build to
-  `ChromaStore.create_vector_store` (own collection, ephemeral by default,
-  named via `ChromaStore.generate_collection_name`).
-- `answer(query, model, top_k, max_tokens)` — routes the query, retrieves +
-  answers if `"search"`, otherwise answers directly from the LLM's general
-  knowledge. Returns `{"answer": str, "action": "search"|"direct"}`.
+- `agent_controller(query, model)` — LLM call that returns `"search"` or `"direct"`.
+- `build_vector_store(folder_path, ts_chunk_size, ts_chunk_overlap)` — loads and chunks a folder, then delegates the actual Chroma build to
+  `ChromaStore.create_vector_store` (own collection, ephemeral by default, named via `ChromaStore.generate_collection_name`).
+- `answer(query, model, top_k, max_tokens)` — routes the query, retrieves + answers if `"search"`, otherwise answers directly from the LLM's general knowledge. Returns `{"answer": str, "action": "search"|"direct"}`.
 
 ### `web_search.py` — `WebSearchAgent`
 Answers questions using live web search (DuckDuckGo) instead of any local
 document store — independent of the rest of the RAG pipeline, useful for
 questions no uploaded document could answer.
 
-- `web_search(query, max_results)` — DuckDuckGo text search, formatted as
-  title/body context.
-- `build_prompt(question, context)` / `ask_alm(prompt, max_tokens)` — builds
-  and sends the final grounded prompt to the LLM.
+- `web_search(query, max_results)` — DuckDuckGo text search, formatted as title/body context.
+- `change_model(new_model)` - can change the model
 
 ---
 

@@ -1,7 +1,6 @@
 # Custom Modules
-from src.rag.clients import embedding_client
-from src.rag.clients.hugging_face_client import HuggingFaceClient
 from src.rag.clients.embedding_client import EmbeddingClient
+from src.rag.clients.hugging_face_client import HuggingFaceClient
 from src.rag.config import load_config
 from src.rag.documents.loaders import load_documents
 from src.rag.documents.splitters import split_text_into_chunks
@@ -15,12 +14,14 @@ import random
 from typing import Literal, Dict
 
 
-ROUTING_PROMPT = """You are a routing agent. Decide whether answering this question requires searching a specific document collection, or whether it can be answered directly from general knowledge.
+ROUTING_PROMPT = """You are a routing agent. Decide whether answering this question requires searching a specific document collection, or whether it can be answered directly from general knowledge. The user has already uploaded documents into a searchable collection.
 
 Reply with exactly one word: "search" or "direct".
 
 - "search" if the question asks about specific content, data, or facts that would be found in an uploaded document (e.g. "summarize the document", "what does the PDF say about X", "according to the report...").
 - "direct" if it's general knowledge, casual conversation, or math/reasoning unrelated to any specific document.
+
+When in doubt, choose "search".
 
 Question: {query}
 
@@ -38,7 +39,7 @@ class AgenticRAG(HuggingFaceClient):
 
     def build_vector_store(self, folder_path: str, ts_chunk_size: int = 150, ts_chunk_overlap: int = 20, collection_name: str = "agentic_rag_collection") -> Chroma:
         """
-        Loads all documents from a folder, chunks them, and builds an in-memory Chroma store.
+        Loads all documents from a folder, chunks them, and builds an in-memory Chroma store. If collection_name is None, a random one is generated (get_or_create's default behavior).
 
         Args:
             folder_path      (str) : Path to the folder containing .txt/.pdf documents.
@@ -60,8 +61,7 @@ class AgenticRAG(HuggingFaceClient):
             )
             all_chunks_doc.extend(chunks_doc)
 
-        self.collection_name = self.chroma_store.generate_collection_name(prefix="agentic")
-        self.vector_store = self.chroma_store.create_vector_store(all_chunks_doc, collection_name=self.collection_name)
+        self.vector_store = self.chroma_store.get_or_create(chunks=all_chunks_doc, collection_name=collection_name)
         return self.vector_store
 
     def agent_controller(self, query: str, model: str) -> Literal["search", "direct"]:
@@ -130,8 +130,8 @@ class AgenticRAG(HuggingFaceClient):
 if __name__ == "__main__":
     embedding_client = EmbeddingClient()
     chroma_store = ChromaStore(embedding_client, persist_directory=None) 
-
-    agent = AgenticRAG()
+                                                                                         
+    agent = AgenticRAG(chroma_store=chroma_store)
 
     config_data = load_config("src/rag/configs/rag_simple.yaml")
     MODELS_TO_TEST              = config_data['model'].get("instruct_completion_models", [])
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         ts_chunk_overlap=TEXT_SPLITTER.get("chunk_overlap", 20)
     )
 
-    query1 = "Give me a 5-point summary from the PDF document. What are the key takeaways?"
+    query1 = "Give me a summary of the PDF documents. What are the key takeaways?"
     query2 = "Why are space rockets painted in white?"
 
     for query in (query1, query2):
