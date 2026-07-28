@@ -19,10 +19,8 @@ class WebSearchAgent(HuggingFaceClient):
         # Geting a list of available models that work with the Hugging Face Inference API right now - they rotate availability on the free tier, so some may be down at any given time.
         data = load_config("src/rag/configs/rag_simple.yaml")
         MODELS_TO_TEST = data["model"].get("instruct_completion_models", [])
-        print(f"Testing {len(MODELS_TO_TEST)} models for availability...")
 
         self.available_models = self.get_working_models(MODELS_TO_TEST)
-        print(f"Available models: {self.available_models}")
         self.model = random.choice(self.available_models)
 
     def change_model(self, new_model: str):

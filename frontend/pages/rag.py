@@ -101,7 +101,10 @@ def get_document_info(file_path, query, llm_prompt, max_tokens, text_splitter_ch
         "llm_max_tokens": max_tokens
     }
     rag = SimpleRAG()
-    chunks, distances = rag.preprocess_document(file_path=file_path, query=query, configuration_data=configuration_data)
+    chunks, distances = rag.preprocess_document(file_path=file_path, query=query, 
+                                                ts_chunk_size=configuration_data["ts_chunk_size"], 
+                                                ts_chunk_overlap=configuration_data["ts_chunk_overlap"], 
+                                                embeddings_top_k=configuration_data["embeddings_top_k"])
     all_chunks, chunk_embeddings, query_embedding, retrieved_indices = rag.get_embedding_visualization_data()
     return chunks, distances, all_chunks, chunk_embeddings, query_embedding, retrieved_indices
 
