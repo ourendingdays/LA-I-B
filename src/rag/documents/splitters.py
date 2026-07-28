@@ -5,6 +5,7 @@ import nltk
 from nltk.tokenize import sent_tokenize
 
 # Standard Libraries
+import re
 from typing import List
 
 def _ensure_punkt_tab():
@@ -68,3 +69,32 @@ def split_text_into_passages(knowledge_text: str, word_limit: int = 200) -> List
     if current_passage:
         passages.append(current_passage.strip())
     return passages
+
+def chunk_passages(text, max_words:int=120) -> list[str]:
+    """Splits long text into smaller passages.
+    Args:
+        text (str): The text to split.
+        max_words (int): Maximum number of words per passage.
+    Returns:
+        list[str]: A list of text passages.
+    """
+    words = text.split()
+    if not words:
+        return []
+    chunks = []
+    i = 0
+    while i < len(words):
+        chunk = words[i : i + max_words]
+        chunks.append(" ".join(chunk))
+        i += max_words
+    return chunks
+
+def split_sentences(text: str) -> list[str]:
+    """Splits text into sentences.
+    Args:
+        text (str): The text to split.
+    Returns:
+        list[str]: A list of sentences.
+    """
+    parts = re.split(r'(?<=[.!?])\s+', text)
+    return [p.strip() for p in parts if p.strip()]

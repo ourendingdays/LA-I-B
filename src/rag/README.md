@@ -191,6 +191,14 @@ questions no uploaded document could answer.
 - `web_search(query, max_results)` — DuckDuckGo text search, formatted as title/body context.
 - `change_model(new_model)` - can change the model
 
+### `web_research_agent.py` — `WebResearchAgent`
+Live-web research agent — searches the web, fetches and reads the actual pages (not just search snippets), chunks them, and ranks passages by semantic similarity to the query before summarizing. A deeper alternative to `WebSearchAgent`, which only uses raw DuckDuckGo result snippets.
+
+- `search_web(query, max_results)` / `unwrap_ddg(url)` — DuckDuckGo search, cleaning DDG's redirect-wrapped URLs.
+- `fetch_text(url, timeout)` — downloads and parses a page with BeautifulSoup, stripping nav/script/footer noise, with a meta-description fallback if `<p>` tags yield nothing usable.
+- `run(query, config)` — full pipeline: search → fetch → chunk (`documents/splitters.chunk_passages`) → embed (`EmbeddingClient.encode`) → rank by cosine similarity → summarize. Returns `{"query", "passages", "summary", "time"}`.
+- `_extractive_summary(...)` — no-LLM summary mode: ranks *sentences* within the top passages by similarity to the query and stitches the best ones together verbatim, with source attribution — zero hallucination risk since nothing is generated, only selected.
+
 ---
 
 ## A typical Workflow

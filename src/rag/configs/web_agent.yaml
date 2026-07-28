@@ -6,3 +6,4 @@ web_research_agent:
   top_passages: 5
   summary_sentences: 3
   timeout: 8
+  use_llm_summary: false

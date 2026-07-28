@@ -63,9 +63,10 @@ class WebSearchAgent(HuggingFaceClient):
 
 if __name__ == "__main__":
     agent = WebSearchAgent()
+    config = load_config("src/rag/configs/web_agent.yaml")
 
     query = "Who was on Apollo 11?"
-    content = agent.web_search(query)
+    content = agent.web_search(query = query, max_results = config["web_search"]["max_results"])
 
     answer = agent.ask_model(query = content, 
                            prompt = PROMPT_TEMPLATE,  
