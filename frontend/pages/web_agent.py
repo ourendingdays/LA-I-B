@@ -56,8 +56,8 @@ def web_search(query: str, max_results: int, chosen_model: str):
 
     
 # ------------ Streamlit UI ------------
-st.markdown("# AI Agents :material/robot_2:")
-st.sidebar.markdown("##### Gentle AI Agents :material/robot_2:")
+st.markdown("# Web Agents :material/robot_2:")
+st.sidebar.markdown("##### Gentle Web Agents :material/robot_2:")
 
 with st.container(border=True, gap="small"):
 

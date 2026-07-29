@@ -12,14 +12,15 @@ st.set_page_config(page_title="LA(I)B", page_icon=":material/neurology:", layout
 st.logo("frontend/assets/app-icon-C-monogram-1024.png", size="large")
 
 # Define the pages
-page_main = st.Page("pages/main_page.py", title="Home", icon=":material/home:")
-page_doc_analysis = st.Page("pages/rag.py", title="RAG", icon=":material/document_search:")
-page_ai_agent = st.Page("pages/ai_agent.py", title="AI Agents", icon=":material/robot_2:")
+page_main           = st.Page("pages/main_page.py", title="Home", icon=":material/home:")
+page_doc_analysis   = st.Page("pages/rag.py", title="RAG", icon=":material/document_search:")
+page_web_agent      = st.Page("pages/web_agent.py", title="AI Agents", icon=":material/robot_2:")
+page_chat_bot       = st.Page("pages/chat_bot.py", title="Chat Bot", icon=":material/chat:")
 
 # Set up navigation
 pg = st.navigation({
     "Overview": [page_main],
-    "Natural Language Processing": [page_doc_analysis, page_ai_agent],
+    "Natural Language Processing": [page_doc_analysis, page_web_agent, page_chat_bot],
 })
 
 # Run the selected page
@@ -29,7 +30,7 @@ with st.sidebar:
     st.divider()
     with st.container(horizontal=True):
         st.caption("@ Pavlo Mospan. 2026")
-        st.badge("v0.1.0", color="green")
+        st.badge("v0.1.1", color="green")
 
     ram = psutil.virtual_memory()           # RAM usage
     disk_usage = psutil.disk_usage('/')     # Disk usage for a specific path
