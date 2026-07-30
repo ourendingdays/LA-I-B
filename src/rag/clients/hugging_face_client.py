@@ -1,7 +1,7 @@
 # Custom Modules
 from src.rag.config import load_config
 
-# Data Science and NLP Libraries
+# Data Science Libraries
 from huggingface_hub import InferenceClient
 
 # Standard Libraries

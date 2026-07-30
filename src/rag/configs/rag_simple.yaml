@@ -41,5 +41,8 @@ model:
 text_splitter : 
   chunk_size : 150
   chunk_overlap : 20
-sentence_transformer_model : "all-MiniLM-L6-v2"
+sentence_transformer_models : [
+  "sentence-transformers/all-MiniLM-L6-v2",
+  "sentence-transformers/all-mpnet-base-v2"
+  ]
 embeddings_top_k : 3

@@ -1,12 +1,12 @@
-# Standard Libraries
-from faiss import loader
+# Data Science Libraries
 from langchain_community.document_loaders import TextLoader, PyMuPDFLoader, WebBaseLoader
 from langchain_core.documents import Document
+
+# Standard Libraries
 import os
 from pathlib import Path
 from pypdf import PdfReader
 from typing import List
-from urllib.parse import urlparse
 
 def load_document(file_path: Path):
     """

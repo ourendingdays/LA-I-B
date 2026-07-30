@@ -15,7 +15,16 @@ class SimpleDocumentAnalyzer(HuggingFaceClient):
     
     def summarize_document(self, input_text: str, model: str) -> str:
         """
-        asa
+        Summarizes the input text using the specified model. 
+        Has two options for summarization: 
+            - Option 1 uses the Hugging Face Inference API directly.
+            -  Option 2 uses the InferenceClient's summarization method.
+        
+        Args:
+            input_text (str): The text to be summarized.
+            model (str): The model to use for summarization.
+        Returns:
+            str: The summarized text.
         """
         # Option 1
         # API_URL = f"https://router.huggingface.co/hf-inference/models/{model}"

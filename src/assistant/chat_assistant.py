@@ -1,9 +1,10 @@
 # Custom Modules
+from src.rag.clients.embedding_client import EmbeddingClient
 from src.rag.clients.hugging_face_client import HuggingFaceClient
 from src.rag.config import load_config
 from src.rag.documents.loaders import langchain_file_loaders, langchain_web_loader
 
-# Data Science and NLP Libraries
+# Data Science Libraries
 from langchain_chroma import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.documents import Document
@@ -13,32 +14,32 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pathlib import Path
 
 class ChatAssistant(HuggingFaceClient):
-    def __init__(self):
+    def __init__(self, embedding_client: EmbeddingClient = None):
         super().__init__()
         
         config_data = load_config("src/rag/configs/rag_simple.yaml")
-        self.PROMPT_TEMPLATE             = config_data['model'].get("llm_prompt")
-        MODELS_TO_TEST              = config_data['model'].get("instruct_completion_models", [])
+        self.prompt             = config_data['model'].get("llm_prompt")
+        MODELS_TO_TEST          = config_data['model'].get("instruct_completion_models", [])
 
         # Hugging Face Inference API Client Initialization
         model = self.get_working_models(models = MODELS_TO_TEST)  # Default model to use for answering queries    
         self.model = model[0] if model else None
 
         model_name = "sentence-transformers/all-mpnet-base-v2"
-        self.huggingface_embedding = HuggingFaceEmbeddings(model_name=model_name)
+        self.embedding_client = embedding_client or EmbeddingClient(model_name=model_name)
 
+        self.huggingface_embedding = HuggingFaceEmbeddings(model_name=model_name)
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=200,
             chunk_overlap=20,
             length_function=len,
         )
 
-
     def process_source_data(self, data: list[Document]):
         chunks = self.text_splitter.split_documents(data)
 
         ids = [str(i) for i in range(0, len(chunks))]
-        self.vectordb = Chroma.from_documents(chunks, self.huggingface_embedding, ids=ids) # persistent_directory="./chroma_db", collection_name="rag_notebook")
+        self.vectordb = Chroma.from_documents(chunks, self.embedding_client.get_langchain_embeddings(), ids=ids) # persistent_directory="./chroma_db", collection_name="rag_notebook")
 
     def answer_query(self, query: str):
         """
@@ -53,7 +54,7 @@ class ChatAssistant(HuggingFaceClient):
         similar_docs    = " ".join([doc.page_content for doc in docs])
 
         answer = self.ask_model(
-            prompt=self.PROMPT_TEMPLATE,
+            prompt=self.prompt,
             model=self.model,
             query=query,
             context=similar_docs,

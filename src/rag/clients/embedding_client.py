@@ -1,12 +1,26 @@
-from langchain_huggingface import HuggingFaceEmbeddings
-from typing import List
+# Custom Modules
+from src.rag.config import load_config
+
+# Data Science Libraries
 import numpy as np
+from langchain_huggingface import HuggingFaceEmbeddings
 from sentence_transformers import SentenceTransformer
 
+# Standard Libraries
+from typing import List
+
 class EmbeddingClient:
-    def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = None):
+        if not model_name:
+            config_data = load_config("src/rag/configs/rag_simple.yaml")
+            models = config_data.get("sentence_transformer_models", [])
+            if not models:
+                raise ValueError("No sentence transformer models found in the configuration.")
+
+            model_name = models[0] # or use random, but for now, just use the first one in the list
+
         self.model_name = model_name
-        self.embedding_function = HuggingFaceEmbeddings(model_name=model_name)
+        self.embedding_function = HuggingFaceEmbeddings(model_name=self.model_name)
         self._sentence_transformer = None
 
     def get_langchain_embeddings(self) -> HuggingFaceEmbeddings:
