@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 100">
+  <style>
+    .s { fill: none; stroke: #0e1116; stroke-linecap: round; stroke-linejoin: round; }
+    .f { fill: #0e1116; }
+    .w { font-family: 'Georgia', 'Palatino Linotype', 'Book Antiqua', serif; font-size: 58px; font-style: italic; letter-spacing: 0.5px; }
+    @media (prefers-color-scheme: dark) {
+      .s { stroke: #ececec; }
+      .f { fill: #ececec; }
+    }
+  </style>
+  <path class="s" stroke-width="1.8" d="M 45,4 Q 41,10 46,16 Q 51,22 47,26"/>
+  <path class="s" stroke-width="1.8" d="M 55,4 Q 59,10 54,16 Q 49,22 53,26"/>
+  <path class="s" stroke-width="5" d="M 32,30 L 68,30"/>
+  <path class="s" stroke-width="5" d="M 36,30 L 36,44 L 18,74 Q 18,88 28,88 L 72,88 Q 82,88 82,74 L 64,44 L 64,30 Z"/>
+  <circle class="s" stroke-width="1.2" cx="50" cy="66" r="11"/>
+  <circle class="f" cx="50" cy="66" r="5.5"/>
+  <text x="120" y="70" class="f w">la(i)b</text>
+</svg>

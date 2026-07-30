@@ -83,7 +83,7 @@ with st.container(horizontal=True, horizontal_alignment="right"):
 
 if st.session_state.web_search_result is not None:
     st.markdown("### Web Search Result:")
-    st.text_area("Result", value=st.session_state.web_search_result, height=200)
+    st.text_area("Result", value=st.session_state.web_search_result, height=200, disabled=True)
 
 
 with st.expander("More Complex Web Research Agent"):

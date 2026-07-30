@@ -9,7 +9,8 @@ import streamlit as st
 
 
 st.set_page_config(page_title="LA(I)B", page_icon=":material/neurology:", layout="wide", initial_sidebar_state="expanded")
-st.logo("frontend/assets/app-icon-C-monogram-1024.png", size="large")
+st.logo(image="frontend/assets/laib-logo-flask.svg",
+        icon_image="frontend/assets/laib-icon-flask.svg", size="large")
 
 # Define the pages
 page_main           = st.Page("pages/main_page.py", title="Home", icon=":material/home:")
