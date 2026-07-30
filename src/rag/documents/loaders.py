@@ -1,13 +1,16 @@
 # Standard Libraries
-import networkx as nx
+from faiss import loader
+from langchain_community.document_loaders import TextLoader, PyMuPDFLoader, WebBaseLoader
+from langchain_core.documents import Document
 import os
 from pathlib import Path
 from pypdf import PdfReader
 from typing import List
+from urllib.parse import urlparse
 
 def load_document(file_path: Path):
     """
-    Loads a document (.txt and .pdf formats) from the given file path and splits it into chunks.
+    Loads a document (.txt and .pdf formats) from the given file path.
 
     Args:
         file_path (Path): Path to the document file.
@@ -47,3 +50,40 @@ def load_documents(folder_path: Path) -> List[str]:
         if file_path.suffix.lower() in [".txt", ".pdf"]:
             documents.append(load_document(file_path))
     return documents
+
+def langchain_file_loaders(file_path: Path) -> Document:
+    """
+    Loads a document using LangChain's loaders based on the file extension.
+
+    Args:
+        file_path (Path): Path to the document file.
+    Returns:
+        Document: Extracted text from the document.
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File '{file_path}' does not exist")
+
+    if file_path.suffix.lower() == ".txt":
+        loader = TextLoader(file_path)
+        data = loader.load()
+    elif file_path.suffix.lower() == ".pdf":
+        loader = PyMuPDFLoader(file_path)
+        data = loader.load_and_split()
+    else:
+        raise ValueError(f"Unsupported file format: {file_path.suffix}. Only .txt and .pdf are supported.")
+
+    return data
+
+def langchain_web_loader(url: str) -> Document:
+    """
+    Loads a document using LangChain's loaders based on the file extension.
+
+    Args:
+        url (str): Web urlto the website.
+    Returns:
+        Document: Extracted text from the document.
+    """
+    loader = WebBaseLoader(url)
+    data = loader.load()
+    return data
+
