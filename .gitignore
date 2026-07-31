@@ -43,3 +43,6 @@ models/*
 
 # Logs
 *.log
+
+# API Keys
+frontend/.streamlit/secrets.toml

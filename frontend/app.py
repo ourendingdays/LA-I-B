@@ -15,13 +15,14 @@ st.logo(image="frontend/assets/laib-logo-flask.svg",
 # Define the pages
 page_main           = st.Page("pages/main_page.py", title="Home", icon=":material/home:")
 page_doc_analysis   = st.Page("pages/rag.py", title="RAG", icon=":material/document_search:")
-page_web_agent      = st.Page("pages/web_agent.py", title="AI Agents", icon=":material/robot_2:")
+page_web_agent      = st.Page("pages/web_agent.py", title="Web Agents", icon=":material/robot_2:")
 page_chat_bot       = st.Page("pages/chat_bot.py", title="Chat Bot", icon=":material/chat:")
+page_gpt            = st.Page("pages/gpt_clone.py", title="GPT Bot", icon=":material/smart_toy:")
 
 # Set up navigation
 pg = st.navigation({
     "Overview": [page_main],
-    "Natural Language Processing": [page_doc_analysis, page_web_agent, page_chat_bot],
+    "Natural Language Processing": [page_doc_analysis, page_web_agent, page_chat_bot, page_gpt],
 })
 
 # Run the selected page
