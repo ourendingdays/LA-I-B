@@ -65,6 +65,8 @@ class InvertedIndex:
             return 0
         return math.log(total_docs / (1 + docs_with_term))
 
+    def get_tfidf(self, doc_id, term):
+        return self.get_tf(doc_id, term) * self.get_idf(term)
 
     def build(self):
         """Concatenates title and description as the exercise specifies."""
