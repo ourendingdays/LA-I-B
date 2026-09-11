@@ -1,6 +1,11 @@
 from nltk.stem import PorterStemmer
 import string
 
+def tokenize_term(term: str) -> str:
+    tokens = preprocess(term)
+    if len(tokens) != 1:
+        raise ValueError(f"Expected exactly one token, got {len(tokens)}: {tokens}")
+    return tokens[0]
 
 def remove_punctuation(text:str) -> str:
     # string.punctuation is just a string containing all punctuation characters: !"#$%&'()*+,-./:;<=>?@[\]^_{|}~

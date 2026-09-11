@@ -4,7 +4,7 @@ import json
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from lib.preprocess import preprocess
+from lib.preprocess import preprocess, tokenize_term
 from lib.inverted_index import InvertedIndex
 
 def search_movies(query: str) -> None:
@@ -35,6 +35,10 @@ def main() -> None:
 
     build_parser = subparsers.add_parser("build", help="Build the inverted index")
 
+    tf_parser = subparsers.add_parser("tf", help="Get term frequency")
+    tf_parser.add_argument("doc_id", type=int, help="Document ID")
+    tf_parser.add_argument("term", type=str, help="Term to look up")
+
     args = parser.parse_args()
 
     match args.command:
@@ -46,7 +50,6 @@ def main() -> None:
             except FileNotFoundError as e:
                 print(e)
                 return
-
             query_tokens = preprocess(args.query)
             results = []
             for token in query_tokens:
@@ -66,6 +69,15 @@ def main() -> None:
             idx.build()
             idx.save()
             print("Index built and saved.")
+        case "tf":
+            idx = InvertedIndex()
+            try:
+                idx.load()
+            except FileNotFoundError as e:
+                print(e)
+                return
+            token = tokenize_term(args.term)
+            print(idx.get_tf(args.doc_id, token))
         case _:
             parser.print_help()
 

@@ -1,12 +1,16 @@
+from collections import Counter
 import json
 import os
 import pickle
+
+# Own Modules
 from lib.preprocess import preprocess
 
 class InvertedIndex:
     def __init__(self):
-        self.index = {}   # token -> set of doc IDs
-        self.docmap = {}  # doc ID -> full movie object
+        self.index = {}             # token -> set of doc IDs
+        self.docmap = {}            # doc ID -> full movie object
+        self.term_frequencies = {}  # doc_id -> Counter
 
     def __add_document(self, doc_id, text):
         """Tokenizes the text with your existing preprocess, then maps each token to a set of doc IDs.
@@ -16,10 +20,13 @@ class InvertedIndex:
             text (str): The text content of the document to be indexed.
         """
         tokens = preprocess(text)
+        if doc_id not in self.term_frequencies:
+            self.term_frequencies[doc_id] = Counter()
         for token in tokens:
             if token not in self.index:
                 self.index[token] = set()
             self.index[token].add(doc_id)
+            self.term_frequencies[doc_id][token] += 1
 
     def get_documents(self, term):
         """Preprocesses the search term and looks it up in the index.
@@ -35,6 +42,11 @@ class InvertedIndex:
             return []
         token = processed[0]
         return sorted(self.index.get(token, []))
+
+    def get_tf(self, doc_id, term):
+        if doc_id not in self.term_frequencies:
+            return 0
+        return self.term_frequencies[doc_id].get(term, 0)
 
     def build(self):
         """Concatenates title and description as the exercise specifies."""
@@ -52,6 +64,8 @@ class InvertedIndex:
             pickle.dump(self.index, f)
         with open("data/rag_visual/cache/docmap.pkl", "wb") as f:
             pickle.dump(self.docmap, f)
+        with open("data/rag_visual/cache/term_frequencies.pkl", "wb") as f:
+            pickle.dump(self.term_frequencies, f)
 
     def load(self):
         """Loads the index and docmap from cache files.
@@ -65,6 +79,8 @@ class InvertedIndex:
             self.index = pickle.load(f)
         with open("data/rag_visual/cache/docmap.pkl", "rb") as f:
             self.docmap = pickle.load(f)
+        with open("data/rag_visual/cache/term_frequencies.pkl", "rb") as f:
+            self.term_frequencies = pickle.load(f)
 
 
 def load_movies():
