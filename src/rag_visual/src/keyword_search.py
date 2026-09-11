@@ -1,10 +1,11 @@
 import argparse
 import json
 
+# Own Modules
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from lib.constants import BM25_K1
+from lib.constants import BM25_K1, BM25_B
 from lib.preprocess import preprocess, tokenize_term
 from lib.inverted_index import InvertedIndex
 
@@ -54,6 +55,12 @@ def main() -> None:
     bm25_tf_parser.add_argument("doc_id", type=int, help="Document ID")
     bm25_tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
     bm25_tf_parser.add_argument("k1", type=float, nargs="?", default=BM25_K1, help="Tunable BM25 K1 parameter")
+
+    bm25_tf_parser.add_argument("b", type=float, nargs="?", default=BM25_B, help="Tunable BM25 b parameter")
+
+    bm25search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")
+    bm25search_parser.add_argument("query", type=str, help="Search query")
+    bm25search_parser.add_argument("--limit", type=int, default=5, help="Number of results")
 
     args = parser.parse_args()
 
@@ -124,8 +131,15 @@ def main() -> None:
             idx = InvertedIndex()
             idx.load()
             token = tokenize_term(args.term)
-            bm25tf = idx.get_bm25_tf(args.doc_id, token, args.k1)
+            bm25tf = idx.get_bm25_tf(args.doc_id, token, args.k1, args.b)
             print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}")
+        case "bm25search":
+            idx = InvertedIndex()
+            idx.load()
+            results = idx.bm25_search(args.query, args.limit)
+            for i, (doc_id, score) in enumerate(results, 1):
+                title = idx.docmap[doc_id]["title"]
+                print(f"{i}. ({doc_id}) {title} — Score: {score:.2f}")
         case _:
             parser.print_help()
 
