@@ -4,6 +4,7 @@ import json
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from lib.constants import BM25_K1
 from lib.preprocess import preprocess, tokenize_term
 from lib.inverted_index import InvertedIndex
 
@@ -42,10 +43,17 @@ def main() -> None:
     idf_parser = subparsers.add_parser("idf", help="Get inverse document frequency")
     idf_parser.add_argument("term", type=str, help="Term to look up")
 
-    # subparser
     tfidf_parser = subparsers.add_parser("tfidf", help="Get TF-IDF score")
     tfidf_parser.add_argument("doc_id", type=int, help="Document ID")
     tfidf_parser.add_argument("term", type=str, help="Term to look up")
+
+    bm25_idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
+    bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
+
+    bm25_tf_parser = subparsers.add_parser("bm25tf", help="Get BM25 TF score for a given document ID and term")
+    bm25_tf_parser.add_argument("doc_id", type=int, help="Document ID")
+    bm25_tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
+    bm25_tf_parser.add_argument("k1", type=float, nargs="?", default=BM25_K1, help="Tunable BM25 K1 parameter")
 
     args = parser.parse_args()
 
@@ -106,6 +114,18 @@ def main() -> None:
             token = tokenize_term(args.term)
             tf_idf = idx.get_tfidf(args.doc_id, token)
             print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
+        case "bm25idf":
+            idx = InvertedIndex()
+            idx.load()  # don't forget this
+            token = tokenize_term(args.term)
+            bm25idf = idx.get_bm25_idf(token)
+            print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
+        case "bm25tf":
+            idx = InvertedIndex()
+            idx.load()
+            token = tokenize_term(args.term)
+            bm25tf = idx.get_bm25_tf(args.doc_id, token, args.k1)
+            print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}")
         case _:
             parser.print_help()
 

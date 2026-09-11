@@ -5,7 +5,9 @@ import pickle
 from typing import Counter
 
 # Own Modules
+from lib.constants import BM25_K1
 from lib.preprocess import preprocess
+from lib.preprocess import tokenize_term
 
 class InvertedIndex:
     def __init__(self):
@@ -67,6 +69,22 @@ class InvertedIndex:
 
     def get_tfidf(self, doc_id, term):
         return self.get_tf(doc_id, term) * self.get_idf(term)
+
+    def get_bm25_idf(self, term: str) -> float:
+        n = len(self.docmap)
+        df = len(self.index.get(term, set()))
+        return math.log((n - df + 0.5) / (df + 0.5) + 1)
+
+    def bm25_tf_command(doc_id, term, k1=BM25_K1):
+        idx = InvertedIndex()
+        idx.load()
+        token = tokenize_term(term)
+        return idx.get_bm25_tf(doc_id, token, k1)
+
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+        tf = self.get_tf(doc_id, term)
+        return (tf * (k1 + 1)) / (tf + k1)
+
 
     def build(self):
         """Concatenates title and description as the exercise specifies."""
