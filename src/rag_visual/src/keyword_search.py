@@ -1,45 +1,14 @@
 import argparse
 import json
-import string
-from nltk.stem import PorterStemmer
+
+import sys
 import os
-cwd = os.getcwd()
-print(cwd)
-
-
-def remove_punctuation(text:str) -> str:
-    # string.punctuation is just a string containing all punctuation characters: !"#$%&'()*+,-./:;<=>?@[\]^_{|}~
-    # str.maketrans("", "", string.punctuation) builds a translation table that maps every punctuation character to None (i.e. delete it)
-    # .translate(table) applies that table to the string
-    return text.translate(str.maketrans("", "", string.punctuation))
-
-
-def load_stop_words(file_path: str) -> set:
-    with open(file_path) as f:
-        stop_words = f.read().splitlines()
-    # preprocess each stop word the same way you preprocess query/title tokens
-    return set(remove_punctuation(word.lower()) for word in stop_words)
-
-# load once at module level so you don't re-read the file every call
-STOP_WORDS = load_stop_words("data/rag_visual/stop_words.txt")
-
-
-def preprocess(query: str) -> str:
-    # Remove Case Sensitivity
-    lower_ = query.lower()
-    # Remove Punctuation
-    punc_ = remove_punctuation(lower_)
-    # Tokenization
-    token_ = punc_.split()
-    # Stop Words
-    token_ = [word for word in token_ if word not in STOP_WORDS]
-    # stemming
-    stemmer = PorterStemmer()
-    stemmed = [stemmer.stem(word) for word in token_]
-    return stemmed
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from lib.preprocess import preprocess
+from lib.inverted_index import InvertedIndex
 
 def search_movies(query: str) -> None:
-    with open("data/rag_visual/movies.json", "r") as file:
+    with open("data/movies.json", "r") as file:
         data = json.load(file)
 
     result = []
@@ -56,29 +25,47 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
+    # creates the subcommand "search"
     search_parser = subparsers.add_parser("search", help="Search movies using keywords")
-    search_parser.add_argument("query", type=str, help="Search query")
-
-    # creates the subcommand "test" itself
-    test_parser = subparsers.add_parser("test", help="Test the module")
-    # adds a positional argument to the subcommand "test", the valeu we can pass after test
-    test_parser.add_argument("test", type=str, nargs="?", default=None, help="Optional test value")
+    # adds  positional argument to the subcommand "search", the value we pass after "search" will be captured as "query"
+    search_parser.add_argument("query", type=str, nargs="?", default=None, help="Search query")
 
     # optional arguments
     # parser.add_argument("--test", type=str, nargs="?", const="default", default=None, help="Test the module")
 
+    build_parser = subparsers.add_parser("build", help="Build the inverted index")
+
     args = parser.parse_args()
 
     match args.command:
-        case "test":
-            print(f"Test value: {args.test}")
-            res = search_movies(query = "Great")
-            print(res)
         case "search":
             print(f"Searching for: {args.query}")
-            res = search_movies(query=args.query)
-            for i, movie_title in enumerate(res):
-                print(f"{i}. {movie_title['title']}")
+            idx = InvertedIndex()
+            try:
+                idx.load()
+            except FileNotFoundError as e:
+                print(e)
+                return
+
+            query_tokens = preprocess(args.query)
+            results = []
+            for token in query_tokens:
+                for doc_id in idx.get_documents(token):
+                    movie = idx.docmap[doc_id]
+                    if movie not in results:
+                        results.append(movie)
+                    if len(results) >= 5:
+                        break
+                if len(results) >= 5:
+                    break
+
+            for movie in results:
+                print(f"ID: {movie['id']} - {movie['title']}")
+        case "build":
+            idx = InvertedIndex()
+            idx.build()
+            idx.save()
+            print("Index built and saved.")
         case _:
             parser.print_help()
 
