@@ -1,7 +1,8 @@
-from collections import Counter
 import json
+import math
 import os
 import pickle
+from typing import Counter
 
 # Own Modules
 from lib.preprocess import preprocess
@@ -44,9 +45,26 @@ class InvertedIndex:
         return sorted(self.index.get(token, []))
 
     def get_tf(self, doc_id, term):
+        """Returns the term frequency of a term in a specific document.
+
+        Args:
+            doc_id (str): The unique identifier for the document.
+            term (str): The term whose frequency is to be retrieved.
+
+        Returns:
+            int: The frequency of the term in the document. Returns 0 if the document or term is not found.
+        """
         if doc_id not in self.term_frequencies:
             return 0
         return self.term_frequencies[doc_id].get(term, 0)
+
+    def get_idf(self, term):
+        total_docs = len(self.docmap)
+        docs_with_term = len(self.index.get(term, set()))
+        if docs_with_term == 0:
+            return 0
+        return math.log(total_docs / (1 + docs_with_term))
+
 
     def build(self):
         """Concatenates title and description as the exercise specifies."""

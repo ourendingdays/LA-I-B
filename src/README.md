@@ -16,6 +16,8 @@ python -m src.assistant.chat_assistant
 python -m src.rag.agents.web_search
 
 python -m src.rag_visual.src.keyword_search search "Great"
+# python -m src.rag_visual.src.keyword_search tf 424 "bear"
+# python -m src.rag_visual.src.keyword_search idf grizzly
 ```
 
 Or: 

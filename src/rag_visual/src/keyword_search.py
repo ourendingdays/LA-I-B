@@ -39,6 +39,9 @@ def main() -> None:
     tf_parser.add_argument("doc_id", type=int, help="Document ID")
     tf_parser.add_argument("term", type=str, help="Term to look up")
 
+    idf_parser = subparsers.add_parser("idf", help="Get inverse document frequency")
+    idf_parser.add_argument("term", type=str, help="Term to look up")
+
     args = parser.parse_args()
 
     match args.command:
@@ -78,6 +81,16 @@ def main() -> None:
                 return
             token = tokenize_term(args.term)
             print(idx.get_tf(args.doc_id, token))
+        case "idf":
+            idx = InvertedIndex()
+            try:
+                idx.load()
+            except FileNotFoundError as e:
+                print(e)
+                return
+            token = tokenize_term(args.term)
+            idf = idx.get_idf(token)
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
         case _:
             parser.print_help()
 
