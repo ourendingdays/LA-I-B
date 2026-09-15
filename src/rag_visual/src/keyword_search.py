@@ -8,20 +8,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from lib.constants import BM25_K1, BM25_B
 from lib.preprocess import preprocess, tokenize_term
 from lib.inverted_index import InvertedIndex
-
-def search_movies(query: str) -> None:
-    with open("data/movies.json", "r") as file:
-        data = json.load(file)
-
-    result = []
-    query = preprocess(query)
-    for movie in data['movies']:
-        if any(
-            any(query_token in title_token for title_token in preprocess(movie['title']))
-            for query_token in query
-        ):
-            result.append(movie)
-    return result
    
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -32,7 +18,7 @@ def main() -> None:
     # adds  positional argument to the subcommand "search", the value we pass after "search" will be captured as "query"
     search_parser.add_argument("query", type=str, nargs="?", default=None, help="Search query")
 
-    # optional arguments
+    # how to add optional arguments
     # parser.add_argument("--test", type=str, nargs="?", const="default", default=None, help="Test the module")
 
     build_parser = subparsers.add_parser("build", help="Build the inverted index")
