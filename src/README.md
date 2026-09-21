@@ -51,3 +51,11 @@ python -m  src.rag_visual.src.keyword_search.py bm25tf 4651 "merida" 1.2 0.5  # 
 
 **k1** — term saturation (higher = repeated terms matter more, default 1.5)
 **b** — length penalty (0 = ignore length, 1 = full penalty, default 0.75)
+
+### Semantic Search
+
+python -m src.rag_visual.src.semantic_seach verify
+
+python -m src.rag_visual.src.semantic_seach verify_embeddings
+
+python -m src.rag_visual.src.semantic_seach embed_query "funny bear movies"

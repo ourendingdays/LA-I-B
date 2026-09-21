@@ -6,8 +6,7 @@ from typing import Counter
 
 # Own Modules
 from lib.constants import BM25_K1, BM25_B, CACHE_DIR
-from lib.preprocess import preprocess, remove_punctuation
-from lib.preprocess import tokenize_term
+from lib.preprocess import preprocess, tokenize_term
 
 class InvertedIndex:
     def __init__(self):
@@ -108,7 +107,6 @@ class InvertedIndex:
         sorted_docs = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         return sorted_docs[:limit]
 
-
     def build(self):
         """Concatenates title and description as the exercise specifies."""
         movies = load_movies()
@@ -146,7 +144,6 @@ class InvertedIndex:
             self.term_frequencies = pickle.load(f)
         with open(self.doc_lengths_path, "rb") as f:
             self.doc_lengths = pickle.load(f)
-
 
 def load_movies():
     with open("data/rag_visual/movies.json", "r") as file:
