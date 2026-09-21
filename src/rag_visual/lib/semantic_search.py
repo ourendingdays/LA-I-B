@@ -1,5 +1,8 @@
-from sentence_transformers import SentenceTransformer
+# Data Science Libraries
 import numpy as np
+from sentence_transformers import SentenceTransformer
+
+# Standard Libraries
 import json
 import os
 
@@ -92,6 +95,7 @@ def verify_embeddings():
     print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
 
 def embed_query_text(query: str):
+    print("sdwefbhekwdnfbmeqwnjsaklf,.mnead f;a/edf")
     semantic_search = SemanticSearch()
     embedding = semantic_search.generate_embedding(query)
     print(f"Query: {query}")

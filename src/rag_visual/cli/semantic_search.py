@@ -1,12 +1,11 @@
+# Custom Modules
+from src.rag_visual.lib.chunked_semantic_search import ChunkedSemanticSearch
+from src.rag_visual.lib.semantic_search import verify_model, embed_text, verify_embeddings, embed_query_text, SemanticSearch
+
+# Standard Libraries
 import argparse
-import os
 import json
 import re
-import sys
-
-# Own Modules
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from lib.semantic_search import verify_model, embed_text, verify_embeddings, embed_query_text, SemanticSearch
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
@@ -35,6 +34,8 @@ def main() -> None:
     semantic_chunk_parser.add_argument("text", type=str, help="Text to chunk semantically")
     semantic_chunk_parser.add_argument("--max-chunk-size", type=int, default=4, help="Chunk length")
     semantic_chunk_parser.add_argument("--overlap", type=int, default=0, help="How many overlapping words")
+
+    subparsers.add_parser("embed_chunks", help="Build chunk embeddings")
 
     args = parser.parse_args()
 
@@ -90,7 +91,13 @@ def main() -> None:
             print(f"Semantically chunking {len(args.text)} characters")
             for i, chunk in enumerate(chunks, 1):
                 print(f"{i}. {chunk}")
-
+        case "embed_chunks":
+            with open("data/rag_visual/movies.json", "r") as f:
+                data = json.load(f)
+            documents = data["movies"]
+            css = ChunkedSemanticSearch()
+            embeddings = css.load_or_create_chunk_embeddings(documents)
+            print(f"Generated {len(embeddings)} chunked embeddings")
         case _:
             parser.print_help()
 
