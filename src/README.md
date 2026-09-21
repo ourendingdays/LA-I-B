@@ -1,3 +1,4 @@
+## RAG
 ### Run the code as a module, not a script
 
 From the project root: 
@@ -22,14 +23,17 @@ Or:
 python src/rag/hugging_face_client
 ```
 
-### Visual RAG
-This is a RAG Search Engine - Movie search CLI with BM25 ranking.
+## Visual RAG 
+This is a RAG Search Engine - Movie search CLI
 
-#### Setup
+### Keyword Search
+
+##### Setup
 
 ```bash
 python -m src.rag_visual.src.keyword_search.py build   # builds index and saves to cache/. Run once before searching. only rerun if movies.json changes.
 ```
+
 #### Search
 
 ```bash
@@ -59,4 +63,6 @@ python -m src.rag_visual.src.semantic_search verify
 python -m src.rag_visual.src.semantic_search verify_embeddings
 python -m src.rag_visual.src.semantic_search embed_query "funny bear movies"
 python -m src.rag_visual.src.semantic_search search "funny bear movies" --limit 5
+python -m src.rag_visual.src.semantic_search chunk "This is a test text with two chunks" --chunk-size 5 --overlap 2
+python -m src.rag_visual.src.semantic_search semantic_chunk "This is the first sentence. This is the second sentence. This is the third sentence. This is the fourth sentence. This is the fifth sentence." --max-chunk-size 3
 ```

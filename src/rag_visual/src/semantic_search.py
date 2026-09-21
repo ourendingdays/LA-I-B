@@ -1,7 +1,8 @@
 import argparse
 import os
-import sys
 import json
+import re
+import sys
 
 # Own Modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,6 +25,16 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Semantic search")
     search_parser.add_argument("query", type=str, help="Search query")
     search_parser.add_argument("--limit", type=int, default=5, help="Number of results")
+
+    chunk_parser = subparsers.add_parser("chunk", help="Chunker simple")
+    chunk_parser.add_argument("text", type=str, help="Text to chunk")
+    chunk_parser.add_argument("--chunk-size", type=int, default=200, help="Chunk length")
+    chunk_parser.add_argument("--overlap", type=int, default=0, help="How many overlapping words")
+
+    semantic_chunk_parser = subparsers.add_parser("semantic_chunk", help="Chunker semantic")
+    semantic_chunk_parser.add_argument("text", type=str, help="Text to chunk semantically")
+    semantic_chunk_parser.add_argument("--max-chunk-size", type=int, default=4, help="Chunk length")
+    semantic_chunk_parser.add_argument("--overlap", type=int, default=0, help="How many overlapping words")
 
     args = parser.parse_args()
 
@@ -48,6 +59,38 @@ def main() -> None:
                 print(f"{i}. {r['title']} (score: {r['score']:.4f})")
                 print(f"   {desc}")
                 print()
+        case "chunk":
+            words = args.text.split()
+            chunk_size = args.chunk_size
+            overlap = args.overlap
+            step = chunk_size - overlap
+            chunks = []
+            for i in range(0, len(words), step):
+                chunks.append(" ".join(words[i:i + chunk_size]))
+                if i + chunk_size >= len(words):
+                    break
+
+            print(f"Chunking {len(args.text)} characters")
+            for i, chunk in enumerate(chunks, 1):
+                print(f"{i}. {chunk}")
+        case "semantic_chunk":
+            sentences = re.split(r"(?<=[.!?])\s+", args.text)
+            sentences = [s for s in sentences if s.strip()]
+            chunk_size = args.max_chunk_size
+            overlap = args.overlap
+            step = chunk_size - overlap
+            chunks = []
+
+            for i in range(0, len(sentences), step):
+                chunk = " ".join(sentences[i:i + chunk_size])
+                chunks.append(chunk)
+                if i + chunk_size >= len(sentences):
+                    break
+
+            print(f"Semantically chunking {len(args.text)} characters")
+            for i, chunk in enumerate(chunks, 1):
+                print(f"{i}. {chunk}")
+
         case _:
             parser.print_help()
 
