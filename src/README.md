@@ -69,3 +69,10 @@ python -m src.rag_visual.cli.semantic_search semantic_chunk " A hero rises. The 
 python -m src.rag_visual.cli.semantic_search embed_chunks
 python -m src.rag_visual.cli.semantic_search search_chunked "superhero action movie" --limit 25
 ```
+
+1. Fixed-size chunking (`chunk`): splits on words, groups every N words into a chunk. Fast and simple but dumb — cuts mid-sentence, so chunks often lose meaning. "The hero saved the | world from destruction" becomes two meaningless fragments.
+2. Semantic chunking (`semantic_chunk`): splits on sentence boundaries (.!?), groups N sentences per chunk. Preserves complete thoughts. Overlap lets adjacent chunks share sentences so context isn't lost at boundaries.
+3. Chunked semantic search (`search_chunked`): uses semantic chunking on each movie description, embeds every chunk separately, then searches at the chunk level. Best chunk score per movie becomes that movie's score. This is the best approach because long descriptions don't get diluted — if one paragraph is highly relevant, it scores high even if the rest of the description is about something else.
+4. `search` command embeds the entire title: description as one vector. A 500-word description about multiple plot points gets averaged into one embedding, which waters down any specific topic.
+
+> Other methods worth checking: ColBERT and Late Chunking
