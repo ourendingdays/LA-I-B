@@ -54,8 +54,9 @@ python -m  src.rag_visual.src.keyword_search.py bm25tf 4651 "merida" 1.2 0.5  # 
 
 ### Semantic Search
 
+```bash
 python -m src.rag_visual.src.semantic_search verify
-
 python -m src.rag_visual.src.semantic_search verify_embeddings
-
 python -m src.rag_visual.src.semantic_search embed_query "funny bear movies"
+python -m src.rag_visual.src.semantic_search search "funny bear movies" --limit 5
+```
