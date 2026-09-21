@@ -1,4 +1,7 @@
+# Data Science Libraries
 from nltk.stem import PorterStemmer
+
+# Standard Modules
 import string
 
 def tokenize_term(term: str) -> str:

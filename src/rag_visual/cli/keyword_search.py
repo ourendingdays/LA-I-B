@@ -1,14 +1,12 @@
-import argparse
-import json
-
 # Custom Modules
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from lib.constants import BM25_K1, BM25_B
-from lib.preprocess import preprocess, tokenize_term
-from lib.inverted_index import InvertedIndex
-   
+from src.rag_visual.lib.constants import BM25_K1, BM25_B
+from src.rag_visual.lib.preprocess import preprocess, tokenize_term
+from src.rag_visual.lib.inverted_index import InvertedIndex
+
+# Standard Modules
+import argparse   
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")

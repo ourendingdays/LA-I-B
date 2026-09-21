@@ -1,12 +1,14 @@
+# Custom Modules
+from src.rag_visual.lib.constants import BM25_K1, BM25_B, CACHE_DIR
+from src.rag_visual.lib.preprocess import preprocess, tokenize_term
+
+# Standard Modules
 import json
 import math
 import os
 import pickle
 from typing import Counter
 
-# Custom Modules
-from lib.constants import BM25_K1, BM25_B, CACHE_DIR
-from lib.preprocess import preprocess, tokenize_term
 
 class InvertedIndex:
     def __init__(self):

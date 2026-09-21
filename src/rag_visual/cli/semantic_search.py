@@ -37,6 +37,10 @@ def main() -> None:
 
     subparsers.add_parser("embed_chunks", help="Build chunk embeddings")
 
+    search_chunked_parser = subparsers.add_parser("search_chunked", help="Search using chunk embeddings")
+    search_chunked_parser.add_argument("query", type=str, help="Search query")
+    search_chunked_parser.add_argument("--limit", type=int, default=5, help="Number of results")
+
     args = parser.parse_args()
 
     match args.command:

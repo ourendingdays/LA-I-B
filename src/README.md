@@ -31,14 +31,14 @@ This is a RAG Search Engine - Movie search CLI
 ##### Setup
 
 ```bash
-python -m src.rag_visual.cli.keyword_search.py build   # builds index and saves to cache/. Run once before searching. only rerun if movies.json changes.
+python -m src.rag_visual.cli.keyword_search build   # builds index and saves to cache/. Run once before searching. only rerun if movies.json changes.
 ```
 
 #### Search
 
 ```bash
-python -m src.rag_visual.cli.keyword_search.py bm25search "love story"          # top 5 results
-python -m src.rag_visual.cli.keyword_search.py bm25search "space" --limit 10    # custom limit
+python -m src.rag_visual.cli.keyword_search bm25search "love story"          # top 5 results
+python -m src.rag_visual.cli.keyword_search bm25search "space" --limit 10    # custom limit
 python -m src.rag_visual.cli.keyword_search search "Great"                       # basic keyword search
 ```
 
