@@ -1,5 +1,5 @@
 # Custom Modules
-from src.rag_visual.lib.chunked_semantic_search import ChunkedSemanticSearch
+from src.rag_visual.lib.chunked_semantic_search import ChunkedSemanticSearch, semantic_chunk
 from src.rag_visual.lib.semantic_search import verify_model, embed_text, verify_embeddings, embed_query_text, SemanticSearch
 
 # Standard Libraries
@@ -79,19 +79,7 @@ def main() -> None:
             for i, chunk in enumerate(chunks, 1):
                 print(f"{i}. {chunk}")
         case "semantic_chunk":
-            sentences = re.split(r"(?<=[.!?])\s+", args.text)
-            sentences = [s for s in sentences if s.strip()]
-            chunk_size = args.max_chunk_size
-            overlap = args.overlap
-            step = chunk_size - overlap
-            chunks = []
-
-            for i in range(0, len(sentences), step):
-                chunk = " ".join(sentences[i:i + chunk_size])
-                chunks.append(chunk)
-                if i + chunk_size >= len(sentences):
-                    break
-
+            chunks = semantic_chunk(args.text, args.max_chunk_size, args.overlap)
             print(f"Semantically chunking {len(args.text)} characters")
             for i, chunk in enumerate(chunks, 1):
                 print(f"{i}. {chunk}")
@@ -102,6 +90,16 @@ def main() -> None:
             css = ChunkedSemanticSearch()
             embeddings = css.load_or_create_chunk_embeddings(documents)
             print(f"Generated {len(embeddings)} chunked embeddings")
+        case "search_chunked":
+            with open("data/rag_visual/movies.json", "r") as f:
+                data = json.load(f)
+            documents = data["movies"]
+            css = ChunkedSemanticSearch()
+            css.load_or_create_chunk_embeddings(documents)
+            results = css.search_chunks(args.query, args.limit)
+            for i, r in enumerate(results, 1):
+                print(f"\n{i}. {r['title']} (score: {r['score']:.4f})")
+                print(f"    {r['document']}...")
         case _:
             parser.print_help()
 

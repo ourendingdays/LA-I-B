@@ -1,3 +1,4 @@
 BM25_K1 = 1.5
 BM25_B = 0.75
 CACHE_DIR = "data/rag_visual/cache"
+SCORE_PRECISION = 4

@@ -65,5 +65,7 @@ python -m src.rag_visual.cli.semantic_search embed_query "funny bear movies"
 python -m src.rag_visual.cli.semantic_search search "funny bear movies" --limit 5
 python -m src.rag_visual.cli.semantic_search chunk "This is a test text with two chunks" --chunk-size 5 --overlap 2
 python -m src.rag_visual.cli.semantic_search semantic_chunk "This is the first sentence. This is the second sentence. This is the third sentence. This is the fourth sentence. This is the fifth sentence." --max-chunk-size 3
+python -m src.rag_visual.cli.semantic_search semantic_chunk " A hero rises. The world needs saving."
 python -m src.rag_visual.cli.semantic_search embed_chunks
+python -m src.rag_visual.cli.semantic_search search_chunked "superhero action movie" --limit 25
 ```
