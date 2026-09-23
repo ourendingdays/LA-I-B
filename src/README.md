@@ -76,3 +76,16 @@ python -m src.rag_visual.cli.semantic_search_cli search_chunked "superhero actio
 4. `search` command embeds the entire title: description as one vector. A 500-word description about multiple plot points gets averaged into one embedding, which waters down any specific topic.
 
 > Other methods worth checking: ColBERT and Late Chunking
+
+### Comparison between Keyword & Semantic Searches
+
+<table>
+<tr align="center">
+    <sub><b>"gods among mortals"</b></sub>
+    <img src="../assets/visual_rag/keyword_vs_semantic_godsamongmortals.png" height="280"><br>
+</tr>
+<tr align="center">
+    <sub><b>"Bear DiCaprio"</b></sub>
+    <img src="../assets/visual_rag/keyword_vs_semantic_beardicaprio.png" height="280"><br>
+</tr>
+</table>
