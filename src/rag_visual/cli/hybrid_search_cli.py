@@ -1,6 +1,7 @@
 # Custom Modules
 from src.rag_visual.lib.inverted_index import load_movies
 from src.rag_visual.lib.hybrid_search import HybridSearch
+from src.rag_visual.lib.query_enhance import spell_correct, rewrite_query, expand_query
 
 # Standard Libraries
 import argparse
@@ -22,6 +23,17 @@ def main() -> None:
     rrf_parser.add_argument("query", type=str, help="Search query")
     rrf_parser.add_argument("-k", type=int, default=60, help="RRF k parameter")
     rrf_parser.add_argument("--limit", type=int, default=5, help="Number of results")
+
+    rrf_parser_llm = subparsers.add_parser("rrf-search-llm", help="RRF hybrid search with LLM")
+    rrf_parser_llm.add_argument("query", type=str, help="Search query")
+    rrf_parser_llm.add_argument("-k", type=int, default=60, help="RRF k parameter")
+    rrf_parser_llm.add_argument("--limit", type=int, default=5, help="Number of results")
+    rrf_parser_llm.add_argument(
+        "--enhance",
+        type=str,
+        choices=["spell", "rewrite", "expand"],
+        help="Query enhancement method",
+    )
 
     args = parser.parse_args()
 
@@ -53,6 +65,34 @@ def main() -> None:
             documents = load_movies()
             hs = HybridSearch(documents)
             results = hs.rrf_search(args.query, args.k, args.limit)
+
+            for i, (doc_id, data) in enumerate(results, 1):
+                bm25_rank = data["bm25_rank"] or "N/A"
+                semantic_rank = data["semantic_rank"] or "N/A"
+                print(f"{i}. {data['doc']['title']}")
+                print(f"   RRF Score: {data['rrf_score']:.3f}")
+                print(f"   BM25 Rank: {bm25_rank}, Semantic Rank: {semantic_rank}")
+                print(f"   {data['doc']['description'][:100]}")
+        case "rrf-search-llm":
+            documents = load_movies()
+            hs = HybridSearch(documents)
+
+            query = args.query
+            if args.enhance == "spell":
+                enhanced = spell_correct(query)
+                print(f"Enhanced query ({args.enhance}): '{query}' -> '{enhanced}'\n")
+                query = enhanced
+            elif args.enhance == "rewrite":
+                enhanced = rewrite_query(query)
+                print(f"Enhanced query ({args.enhance}): '{query}' -> '{enhanced}'\n")
+                query = enhanced
+            elif args.enhance == "expand":
+                enhanced = expand_query(query)
+                print(f"Enhanced query ({args.enhance}): '{query}' -> '{enhanced}'\n")
+                query = f"{query} {enhanced}"
+
+
+            results = hs.rrf_search(query, args.k, args.limit)
 
             for i, (doc_id, data) in enumerate(results, 1):
                 bm25_rank = data["bm25_rank"] or "N/A"

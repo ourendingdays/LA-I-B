@@ -96,4 +96,10 @@ python -m src.rag_visual.cli.semantic_search_cli search_chunked "superhero actio
 python -m src.rag_visual.cli.hybrid_search_cli normalize 0.5 2.3 1.2 0.5 0.1
 python -m src.rag_visual.cli.hybrid_search_cli weighted-search "British Bear" --alpha 0.5 --limit 2501
 python -m src.rag_visual.cli.hybrid_search_cli rrf-search "family fighting movie" --limit 25
+python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "briish bear" --enhance spell
+python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "bear movie that gives me the lulz" --enhance rewrite
+python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm --enhance expand "math movie" --limit 25 
 ```
+
+<sub><b>Expanded RRf Search with LLM</b></sub>
+<img src="../assets/visual_rag/rrf_search_llm_expand.png" height="280"><br>
