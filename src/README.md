@@ -95,4 +95,5 @@ python -m src.rag_visual.cli.semantic_search_cli search_chunked "superhero actio
 ```bash
 python -m src.rag_visual.cli.hybrid_search_cli normalize 0.5 2.3 1.2 0.5 0.1
 python -m src.rag_visual.cli.hybrid_search_cli weighted-search "British Bear" --alpha 0.5 --limit 2501
+python -m src.rag_visual.cli.hybrid_search_cli rrf-search "family fighting movie" --limit 25
 ```
