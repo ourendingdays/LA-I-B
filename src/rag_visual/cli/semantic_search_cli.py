@@ -5,7 +5,6 @@ from src.rag_visual.lib.semantic_search import verify_model, embed_text, verify_
 # Standard Libraries
 import argparse
 import json
-import re
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Semantic Search CLI")

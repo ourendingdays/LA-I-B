@@ -89,3 +89,10 @@ python -m src.rag_visual.cli.semantic_search_cli search_chunked "superhero actio
     <img src="../assets/visual_rag/keyword_vs_semantic_beardicaprio.png" height="280"><br>
 </tr>
 </table>
+
+### Hybrid Search
+
+```bash
+python -m src.rag_visual.cli.hybrid_search_cli normalize 0.5 2.3 1.2 0.5 0.1
+python -m src.rag_visual.cli.hybrid_search_cli weighted-search "British Bear" --alpha 0.5 --limit 2501
+```
