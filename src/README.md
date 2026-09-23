@@ -31,26 +31,26 @@ This is a RAG Search Engine - Movie search CLI
 ##### Setup
 
 ```bash
-python -m src.rag_visual.cli.keyword_search build   # builds index and saves to cache/. Run once before searching. only rerun if movies.json changes.
+python -m src.rag_visual.cli.keyword_search_cli build   # builds index and saves to cache/. Run once before searching. only rerun if movies.json changes.
 ```
 
 #### Search
 
 ```bash
-python -m src.rag_visual.cli.keyword_search bm25search "love story"          # top 5 results
-python -m src.rag_visual.cli.keyword_search bm25search "space" --limit 10    # custom limit
-python -m src.rag_visual.cli.keyword_search search "Great"                       # basic keyword search
+python -m src.rag_visual.cli.keyword_search_cli bm25search "love story"          # top 5 results
+python -m src.rag_visual.cli.keyword_search_cli bm25search "space" --limit 10    # custom limit
+python -m src.rag_visual.cli.keyword_search_cli search "Great"                       # basic keyword search
 ```
 
 #### Scoring Tools
 
 ```bash
-python -m src.rag_visual.cli.keyword_search tf 4651 "merida"          # term frequency in a doc
-python -m src.rag_visual.cli.keyword_search idf "merida"               # how rare a term is
-python -m src.rag_visual.cli.keyword_search tfidf 4651 "merida"        # TF × IDF
-python -m src.rag_visual.cli.keyword_search bm25idf "grizzly"          # BM25 smoothed IDF
-python -m src.rag_visual.cli.keyword_search bm25tf 4651 "merida"       # BM25 TF (k1=1.5, b=0.75)
-python -m src.rag_visual.cli.keyword_search bm25tf 4651 "merida" 1.2 0.5  # custom k1 and b
+python -m src.rag_visual.cli.keyword_search_cli tf 4651 "merida"          # term frequency in a doc
+python -m src.rag_visual.cli.keyword_search_cli idf "merida"               # how rare a term is
+python -m src.rag_visual.cli.keyword_search_cli tfidf 4651 "merida"        # TF × IDF
+python -m src.rag_visual.cli.keyword_search_cli bm25idf "grizzly"          # BM25 smoothed IDF
+python -m src.rag_visual.cli.keyword_search_cli bm25tf 4651 "merida"       # BM25 TF (k1=1.5, b=0.75)
+python -m src.rag_visual.cli.keyword_search_cli bm25tf 4651 "merida" 1.2 0.5  # custom k1 and b
 ```
 
 **k1** — term saturation (higher = repeated terms matter more, default 1.5)
@@ -59,15 +59,15 @@ python -m src.rag_visual.cli.keyword_search bm25tf 4651 "merida" 1.2 0.5  # cust
 ### Semantic Search
 
 ```bash
-python -m src.rag_visual.cli.semantic_search verify
-python -m src.rag_visual.cli.semantic_search verify_embeddings
-python -m src.rag_visual.cli.semantic_search embed_query "funny bear movies"
-python -m src.rag_visual.cli.semantic_search search "funny bear movies" --limit 5
-python -m src.rag_visual.cli.semantic_search chunk "This is a test text with two chunks" --chunk-size 5 --overlap 2
-python -m src.rag_visual.cli.semantic_search semantic_chunk "This is the first sentence. This is the second sentence. This is the third sentence. This is the fourth sentence. This is the fifth sentence." --max-chunk-size 3
-python -m src.rag_visual.cli.semantic_search semantic_chunk " A hero rises. The world needs saving."
-python -m src.rag_visual.cli.semantic_search embed_chunks
-python -m src.rag_visual.cli.semantic_search search_chunked "superhero action movie" --limit 25
+python -m src.rag_visual.cli.semantic_search_cli verify
+python -m src.rag_visual.cli.semantic_search_cli verify_embeddings
+python -m src.rag_visual.cli.semantic_search_cli embed_query "funny bear movies"
+python -m src.rag_visual.cli.semantic_search_cli search "funny bear movies" --limit 5
+python -m src.rag_visual.cli.semantic_search_cli chunk "This is a test text with two chunks" --chunk-size 5 --overlap 2
+python -m src.rag_visual.cli.semantic_search_cli semantic_chunk "This is the first sentence. This is the second sentence. This is the third sentence. This is the fourth sentence. This is the fifth sentence." --max-chunk-size 3
+python -m src.rag_visual.cli.semantic_search_cli semantic_chunk " A hero rises. The world needs saving."
+python -m src.rag_visual.cli.semantic_search_cli embed_chunks
+python -m src.rag_visual.cli.semantic_search_cli search_chunked "superhero action movie" --limit 25
 ```
 
 1. Fixed-size chunking (`chunk`): splits on words, groups every N words into a chunk. Fast and simple but dumb — cuts mid-sentence, so chunks often lose meaning. "The hero saved the | world from destruction" becomes two meaningless fragments.
