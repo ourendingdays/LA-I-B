@@ -1,7 +1,7 @@
 # Custom Modules
 from src.rag_visual.lib.inverted_index import load_movies
 from src.rag_visual.lib.hybrid_search import HybridSearch
-from src.rag_visual.lib.query_enhance import spell_correct, rewrite_query, expand_query, rerank_individual
+from src.rag_visual.lib.query_enhance import spell_correct, rewrite_query, expand_query, rerank_individual, rerank_batch
 
 # Standard Libraries
 import argparse
@@ -40,7 +40,7 @@ def main() -> None:
     rrf_parser_llm.add_argument(
         "--rerank-method",
         type=str,
-        choices=["individual"],
+        choices=["individual", "batch"],
         help="Reranking method",
     )
 
@@ -100,12 +100,14 @@ def main() -> None:
                 print(f"Enhanced query ({args.enhance}): '{query}' -> '{enhanced}'\n")
                 query = f"{query} {enhanced}"
 
-            # if reranking, fetch 5x the limit for candidates
-            fetch_limit = args.limit * 5 if args.rerank_method else args.limit
-            results = hs.rrf_search(query, args.k, fetch_limit)
-
             if args.rerank_method == "individual":
+                results = hs.rrf_search(query, args.k, args.limit * 5)
                 results = rerank_individual(query, results, args.limit)
+            elif args.rerank_method == "batch":
+                results = hs.rrf_search(query, args.k, args.limit * 5)
+                results = rerank_batch(query, results, args.limit)
+            else:
+                results = hs.rrf_search(query, args.k, args.limit)
 
             print(f"Reciprocal Rank Fusion Results for '{query}' (k={args.k}):\n")
             for i, (doc_id, data) in enumerate(results, 1):
@@ -114,6 +116,8 @@ def main() -> None:
                 print(f"{i}. {data['doc']['title']}")
                 if "rerank_score" in data:
                     print(f"   Re-rank Score: {data['rerank_score']:.3f}/10")
+                if "rerank_rank" in data:
+                    print(f"   Re-rank Rank: {data['rerank_rank']}")
                 print(f"   RRF Score: {data['rrf_score']:.3f}")
                 print(f"   BM25 Rank: {bm25_rank}, Semantic Rank: {semantic_rank}")
                 print(f"   {data['doc']['description'][:100]}")

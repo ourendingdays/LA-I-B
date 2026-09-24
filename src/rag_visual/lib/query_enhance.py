@@ -3,6 +3,7 @@ from openai import OpenAI
 
 # Standard Libraries
 from dotenv import load_dotenv
+import json
 import os
 import time
 
@@ -129,3 +130,66 @@ def rerank_individual(query: str, results: list, limit: int) -> list:
 
     results.sort(key=lambda x: x[1]["rerank_score"], reverse=True)
     return results[:limit]
+
+def rerank_batch(query: str, results: list, limit: int) -> list:
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
+    )
+
+    print(f"Re-ranking top {len(results)} results using batch method...")
+
+    # build the movie list string
+    doc_list_str = ""
+    doc_map = {}
+    for doc_id, data in results:
+        doc = data["doc"]
+        doc_list_str += f"ID: {doc['id']} - {doc.get('title', '')} - {doc.get('description', '')[:200]}\n"
+        doc_map[doc["id"]] = (doc_id, data)
+
+    response = client.chat.completions.create(
+        model="openrouter/free",
+        messages=[{
+            "role": "user",
+            "content": f"""Rank the movies listed below by relevance to the following search query.
+
+            Query: "{query}"
+
+            Movies:
+            {doc_list_str}
+
+            Return the movie IDs in order of relevance, best match first.
+
+            Your response must be a raw JSON array of integers.
+            Do not wrap the JSON in Markdown. Do not use a ```json code block.
+            Do not include any explanatory text.
+
+            For example:
+            [75, 12, 34, 2, 1]
+
+            Ranking:"""
+        }],
+    )
+
+    try:
+        ranked_ids = json.loads(response.choices[0].message.content.strip())
+    except json.JSONDecodeError:
+        return results[:limit]
+
+    # rebuild results in ranked order
+    ranked_results = []
+    for rank, movie_id in enumerate(ranked_ids, 1):
+        if movie_id in doc_map:
+            doc_id, data = doc_map[movie_id]
+            data["rerank_rank"] = rank
+            ranked_results.append((doc_id, data))
+
+    # add any results not in the LLM response at the end
+    ranked_movie_ids = set(ranked_ids)
+    for doc_id, data in results:
+        if data["doc"]["id"] not in ranked_movie_ids:
+            data["rerank_rank"] = len(ranked_results) + 1
+            ranked_results.append((doc_id, data))
+
+    return ranked_results[:limit]
