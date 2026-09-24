@@ -24,6 +24,10 @@ def main() -> None:
     summarize_parser.add_argument("query", type=str, help="Search query")
     summarize_parser.add_argument("--limit", type=int, default=5, help="Number of results")
 
+    citations_parser = subparsers.add_parser("citations", help="Answer with citations")
+    citations_parser.add_argument("query", type=str, help="Search query")
+    citations_parser.add_argument("--limit", type=int, default=5, help="Number of results")
+
     args = parser.parse_args()
 
     match args.command:
@@ -121,6 +125,56 @@ def main() -> None:
             
             print(f"\nLLM Summary:\n{summary}")
 
+        case "citations":
+            query = args.query
+
+            documents = load_movies()
+            hs = HybridSearch(documents)
+            results = hs.rrf_search(query, k=60, limit=args.limit)
+
+            formatted_docs = ""
+            titles = []
+            for i, (_, data) in enumerate(results, 1):
+                doc = data["doc"]
+                titles.append(doc["title"])
+                formatted_docs += f"[{i}] {doc['title']} - {doc.get('description', '')[:200]}\n"
+
+            api_key = os.environ.get("OPENROUTER_API_KEY")
+            client = OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=api_key,
+            )
+
+            prompt = f"""Answer the query below and give information based on the provided documents.
+
+        The answer should be tailored to users of Webflyx, a movie streaming service.
+        If not enough information is available to provide a good answer, say so, but give the best answer you can.
+
+        Query: {query}
+
+        Documents:
+        {formatted_docs}
+
+        Instructions:
+        - Provide a comprehensive answer that addresses the query
+        - Cite sources in the format [1], [2], etc. when referencing information
+        - If sources disagree, mention the different viewpoints
+        - If the answer isn't in the provided documents, say "I don't have enough information"
+        - Be direct and informative
+
+        Answer:"""
+
+            response = client.chat.completions.create(
+                model="openrouter/free",
+                messages=[{"role": "user", "content": prompt}],
+            )
+
+            answer = response.choices[0].message.content.strip()
+
+            print("Search Results:")
+            for title in titles:
+                print(f"  - {title}")
+            print(f"\nLLM Answer:\n{answer}")
 
         case _:
             parser.print_help()

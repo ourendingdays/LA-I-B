@@ -126,4 +126,5 @@ python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "family movie abou
 ```bash
 python -m src.rag_visual.cli.augmented_generation_cli rag 'movies about action and dinosaurs'
 python -m src.rag_visual.cli.augmented_generation_cli summarize 'movies about action and dinosaurs'
+python -m src.rag_visual.cli.augmented_generation_cli citations 'action movie with lasers'
 ```
