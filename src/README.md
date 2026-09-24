@@ -133,4 +133,5 @@ python -m src.rag_visual.cli.augmented_generation_cli question 'Who are the main
 ### Multimodal RAG
 ```bash
 python -m src.rag_visual.cli.describe_image_cli --image data/rag_visual/paddington.jpeg --query 'bear in London'
+python -m src.rag_visual.cli.multimodal_search_cli.py verify_image_embedding 'data/rag_visual/paddington.jpeg'
 ```
