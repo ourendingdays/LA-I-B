@@ -111,7 +111,6 @@ python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "family movie abou
 ```
 
 
-
 <table>
 <tr align="center">
     <sub><b>Expanded RRF Search with LLM</b></sub>
@@ -122,3 +121,9 @@ python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "family movie abou
     <img src="../assets/visual_rag/rrf_search_reranker_ce.png" height="280"><br>
 </tr>
 </table>
+
+### Augmented Generation
+```bash
+python -m src.rag_visual.cli.augmented_generation_cli rag 'movies about action and dinosaurs'
+python -m src.rag_visual.cli.augmented_generation_cli summarize 'movies about action and dinosaurs'
+```
