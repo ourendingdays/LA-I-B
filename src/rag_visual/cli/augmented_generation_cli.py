@@ -28,6 +28,10 @@ def main() -> None:
     citations_parser.add_argument("query", type=str, help="Search query")
     citations_parser.add_argument("--limit", type=int, default=5, help="Number of results")
 
+    question_parser = subparsers.add_parser("question", help="Conversational Q&A")
+    question_parser.add_argument("question", type=str, help="Question to answer")
+    question_parser.add_argument("--limit", type=int, default=5, help="Number of results")
+
     args = parser.parse_args()
 
     match args.command:
@@ -175,6 +179,53 @@ def main() -> None:
             for title in titles:
                 print(f"  - {title}")
             print(f"\nLLM Answer:\n{answer}")
+
+        case "question":
+            question = args.question
+
+            documents = load_movies()
+            hs = HybridSearch(documents)
+            results = hs.rrf_search(question, k=60, limit=args.limit)
+
+            context = ""
+            titles = []
+            for _, data in results:
+                doc = data["doc"]
+                titles.append(doc["title"])
+                context += f"{doc['title']} - {doc.get('description', '')[:200]}\n"
+
+            api_key = os.environ.get("OPENROUTER_API_KEY")
+            client = OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=api_key,
+            )
+
+            prompt = f"""Answer the user's question based on the provided movies that are available on Webflyx, a streaming service.
+
+        Question: {question}
+
+        Documents:
+        {context}
+
+        Instructions:
+        - Answer questions directly and concisely
+        - Be casual and conversational
+        - Don't be cringe or hype-y
+        - Talk like a normal person would in a chat conversation
+
+        Answer:"""
+
+            response = client.chat.completions.create(
+                model="openrouter/free",
+                messages=[{"role": "user", "content": prompt}],
+            )
+
+            answer = response.choices[0].message.content.strip()
+
+            print("Search Results:")
+            for title in titles:
+                print(f"  - {title}")
+            print(f"\nAnswer:\n{answer}")
 
         case _:
             parser.print_help()
