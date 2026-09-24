@@ -1,7 +1,7 @@
 # Custom Modules
 from src.rag_visual.lib.inverted_index import load_movies
 from src.rag_visual.lib.hybrid_search import HybridSearch
-from src.rag_visual.lib.query_enhance import spell_correct, rewrite_query, expand_query, rerank_individual, rerank_batch, rerank_cross_encoder
+from src.rag_visual.lib.query_enhance import spell_correct, rewrite_query, expand_query, rerank_individual, rerank_batch, rerank_cross_encoder, evaluate_results
 
 # Standard Libraries
 import argparse
@@ -43,6 +43,7 @@ def main() -> None:
         choices=["individual", "batch", "cross_encoder"],
         help="Reranking method",
     )
+    rrf_parser_llm.add_argument("--evaluate", action="store_true", help="Evaluate results using LLM")
 
     args = parser.parse_args()
 
@@ -111,6 +112,12 @@ def main() -> None:
                 results = rerank_cross_encoder(query, results, args.limit)
             else:
                 results = hs.rrf_search(query, args.k, args.limit)
+
+            if args.evaluate:
+                scores = evaluate_results(query, results)
+                print()
+                for i, ((_, data), score) in enumerate(zip(results, scores), 1):
+                    print(f"{i}. {data['doc']['title']}: {score}/3")
 
             print(f"Reciprocal Rank Fusion Results for '{query}' (k={args.k}):\n")
             for i, (doc_id, data) in enumerate(results, 1):

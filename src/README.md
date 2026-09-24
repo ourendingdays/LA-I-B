@@ -107,6 +107,7 @@ python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "family movie abou
 ### Evaluation
 ```bash
 python -m src.rag_visual.cli.evaluation_cli --limit 3
+python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "family movie about bears in the woods" --evaluate
 ```
 
 

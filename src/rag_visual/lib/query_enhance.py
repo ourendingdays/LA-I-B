@@ -212,3 +212,48 @@ def rerank_cross_encoder(query: str, results: list, limit: int) -> list:
 
     results.sort(key=lambda x: x[1]["cross_encoder_score"], reverse=True)
     return results[:limit]
+
+
+def evaluate_results(query: str, results: list) -> list[int]:
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
+    )
+
+    formatted_results = []
+    for _, data in results:
+        doc = data["doc"]
+        formatted_results.append(f"{doc.get('title', '')} - {doc.get('description', '')[:200]}")
+
+    response = client.chat.completions.create(
+        model="openrouter/free",
+        messages=[{
+            "role": "user",
+            "content": f"""Rate how relevant each result is to this query on a 0-3 scale:
+
+            Query: "{query}"
+
+            Results:
+            {chr(10).join(formatted_results)}
+
+            Scale:
+            - 3: Highly relevant
+            - 2: Relevant
+            - 1: Marginally relevant
+            - 0: Not relevant
+
+            Do NOT give any numbers other than 0, 1, 2, or 3.
+
+            Return ONLY the scores in the same order you were given the documents. Return a valid JSON array of integers.
+
+            [2, 0, 3, 2, 0, 1]"""
+        }],
+    )
+
+    try:
+        scores = json.loads(response.choices[0].message.content.strip())
+    except json.JSONDecodeError:
+        scores = [0] * len(results)
+
+    return scores
