@@ -71,7 +71,7 @@ pip install -r requirements.txt
 
 bash run_app.sh
 ```
-The app boots on http://localhost:8501. Set HF_TOKEN in .env for Hugging Face inference calls.
+The app boots on http://localhost:8501. Set HF_TOKEN in .env for Hugging Face inference calls in `Streamlit APP` or OPENROUTER_API_KEY `visual_rag` pipeline.
 
 
 #### 👨‍💻 made in 2026
