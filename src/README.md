@@ -129,3 +129,8 @@ python -m src.rag_visual.cli.augmented_generation_cli summarize 'movies about ac
 python -m src.rag_visual.cli.augmented_generation_cli citations 'action movie with lasers'
 python -m src.rag_visual.cli.augmented_generation_cli question 'Who are the main characters in Jurassic Park?'
 ```
+
+### Multimodal RAG
+```bash
+python -m src.rag_visual.cli.describe_image_cli --image data/rag_visual/paddington.jpeg --query 'bear in London'
+```
