@@ -1,5 +1,6 @@
 # Data Science Libraries
 from openai import OpenAI
+from sentence_transformers import CrossEncoder
 
 # Standard Libraries
 from dotenv import load_dotenv
@@ -193,3 +194,21 @@ def rerank_batch(query: str, results: list, limit: int) -> list:
             ranked_results.append((doc_id, data))
 
     return ranked_results[:limit]
+
+def rerank_cross_encoder(query: str, results: list, limit: int) -> list:
+    print(f"Re-ranking top {len(results)} results using cross_encoder method...")
+
+    cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2", device="cpu")
+
+    pairs = []
+    for _, data in results:
+        doc = data["doc"]
+        pairs.append([query, f"{doc.get('title', '')} - {doc.get('document', '')}"])
+
+    scores = cross_encoder.predict(pairs)
+
+    for i, (_, data) in enumerate(results):
+        data["cross_encoder_score"] = float(scores[i])
+
+    results.sort(key=lambda x: x[1]["cross_encoder_score"], reverse=True)
+    return results[:limit]

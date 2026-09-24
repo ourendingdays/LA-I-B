@@ -101,7 +101,19 @@ python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "bear movie that g
 python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm --enhance expand "math movie" --limit 25 
 python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm  "family movie about bears in the woods" --rerank-method individual --limit 3
 python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "family movie about bears in the woods" --rerank-method batch --limit 3
+python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "family movie about bears in the woods" --rerank-method cross_encoder --limit 25
 ```
 
-<sub><b>Expanded RRf Search with LLM</b></sub>
-<img src="../assets/visual_rag/rrf_search_llm_expand.png" height="280"><br>
+
+
+
+<table>
+<tr align="center">
+    <sub><b>Expanded RRF Search with LLM</b></sub>
+    <img src="../assets/visual_rag/rrf_search_llm_expand.png" height="280"><br>
+</tr>
+<tr align="center">
+    <sub><b>RRF Search with Cross-Encoder Reranker</b></sub>
+    <img src="../assets/visual_rag/rrf_search_reranker_ce.png" height="280"><br>
+</tr>
+</table>

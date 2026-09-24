@@ -1,7 +1,7 @@
 # Custom Modules
 from src.rag_visual.lib.inverted_index import load_movies
 from src.rag_visual.lib.hybrid_search import HybridSearch
-from src.rag_visual.lib.query_enhance import spell_correct, rewrite_query, expand_query, rerank_individual, rerank_batch
+from src.rag_visual.lib.query_enhance import spell_correct, rewrite_query, expand_query, rerank_individual, rerank_batch, rerank_cross_encoder
 
 # Standard Libraries
 import argparse
@@ -40,7 +40,7 @@ def main() -> None:
     rrf_parser_llm.add_argument(
         "--rerank-method",
         type=str,
-        choices=["individual", "batch"],
+        choices=["individual", "batch", "cross_encoder"],
         help="Reranking method",
     )
 
@@ -106,6 +106,9 @@ def main() -> None:
             elif args.rerank_method == "batch":
                 results = hs.rrf_search(query, args.k, args.limit * 5)
                 results = rerank_batch(query, results, args.limit)
+            elif args.rerank_method == "cross_encoder":
+                results = hs.rrf_search(query, args.k, args.limit * 5)
+                results = rerank_cross_encoder(query, results, args.limit)
             else:
                 results = hs.rrf_search(query, args.k, args.limit)
 
@@ -118,6 +121,8 @@ def main() -> None:
                     print(f"   Re-rank Score: {data['rerank_score']:.3f}/10")
                 if "rerank_rank" in data:
                     print(f"   Re-rank Rank: {data['rerank_rank']}")
+                if "cross_encoder_score" in data:
+                    print(f"   Cross Encoder Score: {data['cross_encoder_score']:.3f}")
                 print(f"   RRF Score: {data['rrf_score']:.3f}")
                 print(f"   BM25 Rank: {bm25_rank}, Semantic Rank: {semantic_rank}")
                 print(f"   {data['doc']['description'][:100]}")
