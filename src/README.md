@@ -104,6 +104,10 @@ python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "family movie abou
 python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "family movie about bears in the woods" --rerank-method cross_encoder --limit 25
 ```
 
+### Evaluation
+```bash
+python -m src.rag_visual.cli.evaluation_cli --limit 3
+```
 
 
 
