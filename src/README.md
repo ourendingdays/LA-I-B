@@ -99,6 +99,7 @@ python -m src.rag_visual.cli.hybrid_search_cli rrf-search "family fighting movie
 python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "briish bear" --enhance spell
 python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm "bear movie that gives me the lulz" --enhance rewrite
 python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm --enhance expand "math movie" --limit 25 
+python -m src.rag_visual.cli.hybrid_search_cli rrf-search-llm  "family movie about bears in the woods" --rerank-method individual --limit 3
 ```
 
 <sub><b>Expanded RRf Search with LLM</b></sub>

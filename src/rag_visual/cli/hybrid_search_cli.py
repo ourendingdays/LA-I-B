@@ -1,7 +1,7 @@
 # Custom Modules
 from src.rag_visual.lib.inverted_index import load_movies
 from src.rag_visual.lib.hybrid_search import HybridSearch
-from src.rag_visual.lib.query_enhance import spell_correct, rewrite_query, expand_query
+from src.rag_visual.lib.query_enhance import spell_correct, rewrite_query, expand_query, rerank_individual
 
 # Standard Libraries
 import argparse
@@ -14,16 +14,19 @@ def main() -> None:
     normalise_parser = subparsers.add_parser("normalize", help="Score normalization")
     normalise_parser.add_argument("scores", type=float, nargs="+", help="Scores to normalize")
 
+    # hybrid weighted search
     weighted_search = subparsers.add_parser("weighted-search", help="Weighted Search")
     weighted_search.add_argument("query", type=str, help="Text query for the weighted search")
     weighted_search.add_argument("--alpha", type=float, default = 0.5,help="Alpha constant for weighting between BM25 and semantic scores")
     weighted_search.add_argument("--limit", type=int, default=5, help="Limit the number of search results returned")
 
+    # hybrid reciprocal rank fusion search
     rrf_parser = subparsers.add_parser("rrf-search", help="RRF hybrid search")
     rrf_parser.add_argument("query", type=str, help="Search query")
     rrf_parser.add_argument("-k", type=int, default=60, help="RRF k parameter")
     rrf_parser.add_argument("--limit", type=int, default=5, help="Number of results")
-
+    
+    # hybrid reciprocal rank fusion search with LLM
     rrf_parser_llm = subparsers.add_parser("rrf-search-llm", help="RRF hybrid search with LLM")
     rrf_parser_llm.add_argument("query", type=str, help="Search query")
     rrf_parser_llm.add_argument("-k", type=int, default=60, help="RRF k parameter")
@@ -33,6 +36,12 @@ def main() -> None:
         type=str,
         choices=["spell", "rewrite", "expand"],
         help="Query enhancement method",
+    )
+    rrf_parser_llm.add_argument(
+        "--rerank-method",
+        type=str,
+        choices=["individual"],
+        help="Reranking method",
     )
 
     args = parser.parse_args()
@@ -91,13 +100,20 @@ def main() -> None:
                 print(f"Enhanced query ({args.enhance}): '{query}' -> '{enhanced}'\n")
                 query = f"{query} {enhanced}"
 
+            # if reranking, fetch 5x the limit for candidates
+            fetch_limit = args.limit * 5 if args.rerank_method else args.limit
+            results = hs.rrf_search(query, args.k, fetch_limit)
 
-            results = hs.rrf_search(query, args.k, args.limit)
+            if args.rerank_method == "individual":
+                results = rerank_individual(query, results, args.limit)
 
+            print(f"Reciprocal Rank Fusion Results for '{query}' (k={args.k}):\n")
             for i, (doc_id, data) in enumerate(results, 1):
                 bm25_rank = data["bm25_rank"] or "N/A"
                 semantic_rank = data["semantic_rank"] or "N/A"
                 print(f"{i}. {data['doc']['title']}")
+                if "rerank_score" in data:
+                    print(f"   Re-rank Score: {data['rerank_score']:.3f}/10")
                 print(f"   RRF Score: {data['rrf_score']:.3f}")
                 print(f"   BM25 Rank: {bm25_rank}, Semantic Rank: {semantic_rank}")
                 print(f"   {data['doc']['description'][:100]}")

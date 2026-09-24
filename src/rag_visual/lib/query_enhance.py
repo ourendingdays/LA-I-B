@@ -2,8 +2,9 @@
 from openai import OpenAI
 
 # Standard Libraries
-import os
 from dotenv import load_dotenv
+import os
+import time
 
 load_dotenv()
 
@@ -61,7 +62,6 @@ User query: "{query}"
     )
     return response.choices[0].message.content.strip()
 
-
 def expand_query(query: str) -> str:
     api_key = os.environ.get("OPENROUTER_API_KEY")
     client = OpenAI(
@@ -88,3 +88,44 @@ def expand_query(query: str) -> str:
         }],
     )
     return response.choices[0].message.content.strip()
+
+def rerank_individual(query: str, results: list, limit: int) -> list:
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
+    )
+
+    print(f"Re-ranking top {len(results)} results using individual method...")
+
+    for _, data in results:
+        doc = data["doc"]
+        response = client.chat.completions.create(
+            model="openrouter/free",
+            messages=[{
+                "role": "user",
+                "content": f"""Rate how well this movie matches the search query.
+
+                Query: "{query}"
+                Movie: {doc.get("title", "")} - {doc.get("description", "")[:200]}
+
+                Consider:
+                - Direct relevance to query
+                - User intent (what they're looking for)
+                - Content appropriateness
+
+                Rate 0-10 (10 = perfect match).
+                Output ONLY the number in your response, no other text or explanation.
+
+                Score:"""
+            }],
+        )
+        try:
+            score = float(response.choices[0].message.content.strip())
+        except ValueError:
+            score = 0.0
+        data["rerank_score"] = score
+        time.sleep(3)
+
+    results.sort(key=lambda x: x[1]["rerank_score"], reverse=True)
+    return results[:limit]
