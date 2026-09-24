@@ -53,6 +53,7 @@ The idea is to build code that would let test the most recent and modern things 
 * HuggingFace
 * SentenceTransformers
 * OpenAI
+* OpenRouter
 
 ---
 
@@ -73,19 +74,6 @@ bash run_app.sh
 The app boots on http://localhost:8501. Set HF_TOKEN in .env for Hugging Face inference calls.
 
 
-## 👨‍💻 Author
-
-**Pavlo Mospan(c) 2017**. Updated 2026
-
-* 💼 Data Scientist / AI Engineer
-* 🌍 Augsburg, Germany
+#### 👨‍💻 made in 2026
 
 ---
-
-## ⭐️ Show your support
-
-If you like this project:
-
-* ⭐️ Star the repo
-* 🍴 Fork it
-* 🧠 Share ideas
